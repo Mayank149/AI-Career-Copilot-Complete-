@@ -2,6 +2,7 @@ from fastapi import APIRouter, UploadFile, File
 from langchain_community.document_loaders import PyPDFLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_huggingface import HuggingFaceEmbeddings
+from langchain_chroma import Chroma
 import os
 import shutil
 
@@ -29,6 +30,14 @@ async def upload_resume(file: UploadFile = File(...)):
     embeddings = HuggingFaceEmbeddings(
         model_name="sentence-transformers/all-MiniLM-L6-v2"
     )
+
+    vector_store = Chroma.from_documents(
+        documents = chunks,
+        embedding = embeddings,
+        persist_directory = "./chroma_db"
+    )
+
+    
     
     return {
         "filename": file.filename,
