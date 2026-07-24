@@ -1,7 +1,7 @@
 from fastapi import APIRouter, UploadFile, File
 from langchain_community.document_loaders import PyPDFLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-from vectorstore import create_vector_store
+from vectorstore import create_retriever
 import os
 import shutil
 
@@ -27,7 +27,7 @@ async def upload_resume(file: UploadFile = File(...)):
 
     chunks = text_splitter.split_documents(documents)
     
-    vector_store = create_vector_store(chunks)
+    retriever = create_retriever(chunks)
     
     return {
         "filename": file.filename,

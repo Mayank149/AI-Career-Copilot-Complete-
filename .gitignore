@@ -1,3 +1,4 @@
 __pycache__
 *.pdf
 .vscode
+chroma_db/
