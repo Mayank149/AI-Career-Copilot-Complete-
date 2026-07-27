@@ -13,20 +13,23 @@ def create_vector_store(chunks, persist_directory="./chroma_db"):
     )
     return vector_store
 
-def load_vectore_store():
+def load_vector_store():
     return Chroma(
         persist_directory = "./chroma_db",
         embedding_function = embeddings
     )
 
-def create_retriever():
-    vector_store = load_vectore_store()
-    
+def get_retriever():
+    vector_store = load_vector_store()
+    print(vector_store._collection.count())
     retriever = vector_store.as_retriever(
         search_type = "mmr",
-        search_kwargs = {"k": 4},
-        fetch_k = 10,
-        lambda_mult = 0.5
+        search_kwargs = {
+            "k": 4,
+            "fetch_k": 10,
+            "lambda_mult": 0.5
+        }
+        
     )
 
     return retriever

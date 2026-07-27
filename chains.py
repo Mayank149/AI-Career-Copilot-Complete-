@@ -4,16 +4,20 @@ from langchain_core.output_parsers import StrOutputParser
 from langchain_ollama import ChatOllama
 
 llm = ChatOllama(
-    model = "gemma2:2b"
+    model = "qwen2.5:7b"
 )
 
 prompt = ChatPromptTemplate.from_template("""
 You are an AI Career Copilot.
 
-Answer the question only using the provided resume.
+Answer the user's question using ONLY the information provided in the resume context.
 
-If the answer is not present, say:
+If the answer cannot be found in the resume, respond exactly:
+
 "I couldn't find that information in the resume."
+
+Do not make assumptions.
+Do not use outside knowledge.
 
 Resume:
 {context}
@@ -23,7 +27,15 @@ Question:
 """)
 
 def format_docs(docs):
-    return "\n\n".join(doc.page_content for doc in docs)
+    context = "\n\n".join(doc.page_content for doc in docs)
+
+    print("=" * 80)
+    print("FORMATTED CONTEXT")
+    print("=" * 80)
+    print(context)
+    print("=" * 80)
+
+    return context
 
 def create_rag_chain(retriever):
     return (
