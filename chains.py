@@ -2,9 +2,10 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import RunnablePassthrough
 from langchain_core.output_parsers import StrOutputParser
 from langchain_ollama import ChatOllama
+from config import LLM_MODEL
 
 llm = ChatOllama(
-    model = "qwen2.5:7b"
+    model = LLM_MODEL
 )
 
 prompt = ChatPromptTemplate.from_template("""

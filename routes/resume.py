@@ -5,6 +5,7 @@ from vectorstore import create_vector_store, get_retriever
 from pydantic import BaseModel
 from chains import create_rag_chain
 import re
+from config import UPLOAD_DIR, CHUNK_SIZE, CHUNK_OVERLAP
 
 import os
 import shutil
@@ -14,7 +15,7 @@ class QuestionRequest(BaseModel):
 
 router = APIRouter()
 
-UPLOAD_DIR = "uploads"
+UPLOAD_DIR = UPLOAD_DIR
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 @router.post("/upload")
@@ -34,8 +35,8 @@ async def upload_resume(file: UploadFile = File(...)):
         doc.page_content = text
 
     text_splitter = RecursiveCharacterTextSplitter(
-        chunk_size = 500,
-        chunk_overlap = 100
+        chunk_size = CHUNK_SIZE,
+        chunk_overlap = CHUNK_OVERLAP
     )
 
     chunks = text_splitter.split_documents(documents)
