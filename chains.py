@@ -3,10 +3,9 @@ from langchain_core.runnables import RunnablePassthrough
 from langchain_core.output_parsers import StrOutputParser
 from langchain_ollama import ChatOllama
 from config import LLM_MODEL
+from services.llm_service import get_llm
 
-llm = ChatOllama(
-    model = LLM_MODEL
-)
+llm = get_llm()
 
 prompt = ChatPromptTemplate.from_template("""
 You are an AI Career Copilot.
