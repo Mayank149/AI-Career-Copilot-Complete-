@@ -30,12 +30,6 @@ Question:
 def format_docs(docs):
     context = "\n\n".join(doc.page_content for doc in docs)
 
-    print("=" * 80)
-    print("FORMATTED CONTEXT")
-    print("=" * 80)
-    print(context)
-    print("=" * 80)
-
     return context
 
 def create_rag_chain(retriever):

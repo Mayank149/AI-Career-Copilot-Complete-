@@ -6,6 +6,7 @@ from pydantic import BaseModel
 from chains import create_rag_chain
 import re
 from config import UPLOAD_DIR, CHUNK_SIZE, CHUNK_OVERLAP
+from fastapi import HTTPException
 
 import os
 import shutil

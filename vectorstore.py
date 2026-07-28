@@ -7,6 +7,9 @@ from config import (
     FETCH_K,
     LAMBDA_MULT,
 )
+from fastapi import HTTPException
+import os
+
 
 embeddings = HuggingFaceEmbeddings(
     model_name = EMBEDDING_MODEL
@@ -21,10 +24,22 @@ def create_vector_store(chunks, persist_directory="./chroma_db"):
     return vector_store
 
 def load_vector_store():
-    return Chroma(
+    if not os.path.exists(CHROMA_DIR):
+        raise HTTPException(
+            status_code=404, detail="Vector store not found. Please upload a resume first."
+        )
+
+    vector_store = Chroma(
         persist_directory = CHROMA_DIR,
         embedding_function = embeddings
     )
+
+    if vector_store._collection.count() == 0:
+        raise HTTPException(
+            status_code=404, detail="Vector store is empty. Please upload a resume first."
+        )
+
+    return vector_store
 
 def get_retriever():
     vector_store = load_vector_store()
