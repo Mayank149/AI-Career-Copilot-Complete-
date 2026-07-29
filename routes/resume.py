@@ -5,7 +5,7 @@ from fastapi import APIRouter, File, UploadFile
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from pydantic import BaseModel
 
-from chains import create_rag_chain
+from chains.rag import create_rag_chain
 from config import CHUNK_OVERLAP, CHUNK_SIZE, UPLOAD_DIR
 from services.resume_service import load_resume_documents
 from vectorstore import create_vector_store, get_retriever
