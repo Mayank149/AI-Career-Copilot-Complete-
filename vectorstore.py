@@ -1,6 +1,5 @@
-from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_chroma import Chroma
-from config import EMBEDDING_MODEL, CHROMA_DIR
+from config import  CHROMA_DIR
 from config import (
     SEARCH_TYPE,
     TOP_K,
@@ -9,11 +8,17 @@ from config import (
 )
 from fastapi import HTTPException
 import os
+from services.embedding_client import get_embeddings
 
+class RemoteEmbeddings:
 
-embeddings = HuggingFaceEmbeddings(
-    model_name = EMBEDDING_MODEL
-)
+    def embed_documents(self, texts):
+        return get_embeddings(texts)
+
+    def embed_query(self, text):
+        return get_embeddings([text])[0]
+
+embeddings = RemoteEmbeddings()
 
 def create_vector_store(chunks, persist_directory="./chroma_db"):
     vector_store = Chroma.from_documents(
