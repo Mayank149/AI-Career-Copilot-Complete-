@@ -9,7 +9,7 @@ app.include_router(resume_router)
 # app.include_router(ats.router, prefix="/ats", tags=["ATS Checker"])
 app.include_router(
     review.router,
-    tags=["Resume Review"],
+    tags=["ATS Checker"],
 )
 
 @app.get("/")
