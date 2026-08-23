@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>AI Career Copilot | ATS Score Studio & Resume Chat</title>
+  <title>AI Career Copilot | ATS Score Studio & AI Chat</title>
   <meta
     name="description"
     content="Upload your resume, compare against job descriptions, calculate ATS match scores, discover missing keywords, and chat with your resume using AI."
@@ -65,8 +65,26 @@
         </button>
       </nav>
 
-      <!-- Connection Status & Settings -->
+      <!-- Connection Status, Provider Selector & Resume Change -->
       <div class="nav-actions">
+        <!-- Local vs Cloud Provider Selector Pill -->
+        <button id="provider-toggle-btn" class="provider-pill local" title="Click to toggle Local (Qwen 7B) / Cloud (Groq API)">
+          ⚡ Local (Qwen 7B)
+        </button>
+
+        <!-- Change Resume Button -->
+        <button id="change-resume-nav-btn" class="btn-secondary" style="display: flex; align-items: center; gap: 6px;">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+            <polyline points="14 2 14 8 20 8"/>
+            <line x1="12" y1="18" x2="12" y2="12"/>
+            <line x1="9" y1="15" x2="12" y2="12"/>
+            <line x1="15" y1="15" x2="12" y2="12"/>
+          </svg>
+          <span id="nav-resume-label">Upload Resume</span>
+        </button>
+
+        <!-- API Connection Status Badge -->
         <div class="status-indicator" id="status-badge" title="Click to view API endpoint info">
           <span class="status-ping connecting" id="status-ping"></span>
           <span id="status-text">Checking API...</span>
@@ -90,8 +108,8 @@
       </div>
       <h2 class="hero-title">Optimize Your Resume for Any Job</h2>
       <p class="hero-subtitle">
-        Upload your resume PDF, match against target job descriptions, discover critical missing keywords, 
-        and chat directly with your resume using RAG intelligence.
+        Upload your resume PDF once, match against target job descriptions, discover missing keywords, 
+        and chat directly with your resume using LangGraph memory agent.
       </p>
     </section>
 
@@ -110,52 +128,30 @@
                 </svg>
               </div>
               <div>
-                <h3 class="card-title">Upload & Target</h3>
-                <p class="card-subtitle">Provide your PDF resume and target job requirements</p>
+                <h3 class="card-title">Target Job Description</h3>
+                <p class="card-subtitle">Match your active resume against target role requirements</p>
               </div>
             </div>
           </div>
 
           <form id="ats-form">
-            <!-- File Upload Dropzone -->
+            <!-- Active Resume Display Banner -->
             <div class="form-group">
               <div class="label-row">
-                <label class="form-label">Resume PDF</label>
-                <span class="form-hint">Supported: PDF (Max 10MB)</span>
+                <label class="form-label">Active Resume</label>
+                <button type="button" class="btn-secondary" id="change-resume-form-btn" style="padding: 2px 10px; font-size: 0.75rem;">Change Resume</button>
               </div>
-              <div class="dropzone" id="dropzone">
-                <input type="file" id="resume-input" accept="application/pdf" class="dropzone-input" />
-                <div class="dropzone-icon">
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                    <polyline points="14 2 14 8 20 8"/>
-                    <line x1="12" y1="18" x2="12" y2="12"/>
-                    <line x1="9" y1="15" x2="12" y2="12"/>
-                    <line x1="15" y1="15" x2="12" y2="12"/>
-                  </svg>
-                </div>
-                <div class="dropzone-title">Drag & drop your resume PDF here</div>
-                <div class="dropzone-subtitle">or click to browse from your computer</div>
-              </div>
-
-              <!-- Active File Display -->
-              <div class="file-badge" id="file-badge">
-                <div class="file-info">
-                  <svg class="file-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <div class="active-resume-card" id="active-resume-banner">
+                <div class="resume-status-info">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--primary-light)" stroke-width="2">
                     <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
                     <polyline points="14 2 14 8 20 8"/>
                   </svg>
                   <div>
-                    <div class="file-name" id="file-name">resume.pdf</div>
-                    <div class="file-size" id="file-size">0 KB</div>
+                    <div class="resume-status-title" id="active-resume-name">No resume uploaded</div>
+                    <div class="resume-status-desc" id="active-resume-desc">Click "Upload Resume" to get started</div>
                   </div>
                 </div>
-                <button type="button" class="remove-file-btn" id="remove-file-btn" title="Remove resume">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <line x1="18" y1="6" x2="6" y2="18"/>
-                    <line x1="6" y1="6" x2="18" y2="18"/>
-                  </svg>
-                </button>
               </div>
             </div>
 
@@ -201,7 +197,7 @@
               </div>
               <div>
                 <h3 class="card-title">ATS Score & Analysis</h3>
-                <p class="card-subtitle" id="analysis-subtitle">Awaiting resume upload & analysis run</p>
+                <p class="card-subtitle" id="analysis-subtitle">Awaiting analysis run</p>
               </div>
             </div>
             <button type="button" class="btn-secondary" id="export-btn" style="display: none;" title="Copy summary report">
@@ -268,7 +264,7 @@
               </svg>
             </div>
             <h4>No Analysis Results Yet</h4>
-            <p style="font-size: 0.85rem; margin-top: 0.25rem;">Select your resume and job description on the left, then click "Run ATS Match Analysis".</p>
+            <p style="font-size: 0.85rem; margin-top: 0.25rem;">Paste a job description on the left and click "Run ATS Match Analysis".</p>
           </div>
 
           <!-- Detailed Results Stack -->
@@ -317,11 +313,11 @@
                 </svg>
               </div>
               <div>
-                <h3 class="card-title">Resume Copilot Chat</h3>
-                <p class="card-subtitle" id="chat-subtitle">Ask questions about your uploaded resume using RAG vector intelligence</p>
+                <h3 class="card-title">AI Resume Copilot Chat</h3>
+                <p class="card-subtitle" id="chat-subtitle">Powered by LangGraph Memory & Tool Calling Agent</p>
               </div>
             </div>
-            <button type="button" class="btn-secondary" id="clear-chat-btn">Clear Chat</button>
+            <button type="button" class="btn-secondary" id="clear-chat-btn">New Conversation</button>
           </div>
 
           <!-- Chat Messages Area -->
@@ -331,7 +327,7 @@
               <div class="message-avatar">AI</div>
               <div>
                 <div class="message-bubble">
-                  Hello! I am your AI Career Copilot. Once you upload your resume PDF, you can ask me anything about your experience, technical skills, project details, or ask me to draft tailored responses for applications!
+                  Hello! I am your AI Career Copilot with memory persistence. Ask me questions about your resume, missing skills, career path, or follow-up on previous answers!
                 </div>
                 <span class="message-time">Just now</span>
               </div>
@@ -342,10 +338,10 @@
           <div class="chat-footer">
             <!-- Prompt Suggestions -->
             <div class="prompt-suggestions">
+              <button type="button" class="prompt-chip" data-prompt="I want to become an AI Engineer. What skills am I missing?">🚀 Skill Gap Analysis</button>
+              <button type="button" class="prompt-chip" data-prompt="Which of those skills should I learn first?">🎯 Priority Roadmap</button>
               <button type="button" class="prompt-chip" data-prompt="What are the main technical skills listed in my resume?">💡 Top Technical Skills</button>
-              <button type="button" class="prompt-chip" data-prompt="Summarize my relevant experience in 3 high-impact bullet points.">📄 3-Bullet Summary</button>
-              <button type="button" class="prompt-chip" data-prompt="What software projects or architecture achievements are mentioned?">🚀 Project Highlights</button>
-              <button type="button" class="prompt-chip" data-prompt="How can I phrase my experience for a Lead Engineer role?">🎯 Lead Role Pitch</button>
+              <button type="button" class="prompt-chip" data-prompt="Summarize my relevant experience in 3 bullet points.">📄 3-Bullet Summary</button>
             </div>
 
             <!-- Chat Input Bar -->
@@ -354,7 +350,7 @@
                 type="text"
                 id="chat-input"
                 class="chat-input"
-                placeholder="Ask your resume anything (e.g. 'What is my experience with Python and databases?')..."
+                placeholder="Ask your resume anything (e.g. 'What skills am I missing for AI Engineer?')..."
                 autocomplete="off"
               />
               <button type="submit" class="send-btn" id="chat-send-btn" title="Send Question">
@@ -368,6 +364,71 @@
         </div>
       </div>
     </main>
+  </div>
+
+  <!-- Dedicated Resume Upload Modal -->
+  <div class="modal-backdrop" id="resume-modal">
+    <div class="modal-content" style="max-width: 540px;">
+      <div class="modal-header">
+        <div>
+          <h3 class="modal-title" id="resume-modal-title">Upload Your Resume</h3>
+          <p class="form-hint" style="margin-top: 2px;">Upload a PDF resume to unlock ATS Studio and AI Copilot Chat</p>
+        </div>
+        <button type="button" class="remove-file-btn" id="close-resume-modal-btn">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"/>
+            <line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+      </div>
+
+      <form id="modal-resume-form">
+        <div class="form-group" style="margin-bottom: 1rem;">
+          <div class="dropzone" id="modal-dropzone">
+            <input type="file" id="modal-resume-input" accept="application/pdf" class="dropzone-input" />
+            <div class="dropzone-icon">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                <polyline points="14 2 14 8 20 8"/>
+                <line x1="12" y1="18" x2="12" y2="12"/>
+                <line x1="9" y1="15" x2="12" y2="12"/>
+                <line x1="15" y1="15" x2="12" y2="12"/>
+              </svg>
+            </div>
+            <div class="dropzone-title">Drag & drop your resume PDF here</div>
+            <div class="dropzone-subtitle">or click to choose a file from your device</div>
+          </div>
+
+          <!-- Active File Selection Display -->
+          <div class="file-badge" id="modal-file-badge">
+            <div class="file-info">
+              <svg class="file-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                <polyline points="14 2 14 8 20 8"/>
+              </svg>
+              <div>
+                <div class="file-name" id="modal-file-name">resume.pdf</div>
+                <div class="file-size" id="modal-file-size">0 KB</div>
+              </div>
+            </div>
+            <button type="button" class="remove-file-btn" id="modal-remove-file-btn" title="Remove selected file">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="18" y1="6" x2="6" y2="18"/>
+                <line x1="6" y1="6" x2="18" y2="18"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="modal-footer" style="margin-top: 1.25rem;">
+          <button type="button" class="btn-secondary" id="cancel-resume-modal-btn">Cancel</button>
+          <button type="submit" class="btn-primary" id="upload-resume-submit-btn" style="width: auto; padding: 0.65rem 1.5rem;">
+            <span id="upload-btn-text">Upload & Save Resume</span>
+            <div class="spinner" id="upload-btn-spinner" style="display: none; width: 14px; height: 14px;"></div>
+          </button>
+        </div>
+      </form>
+    </div>
   </div>
 
   <!-- Settings Modal -->

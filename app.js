@@ -9,12 +9,14 @@ document.addEventListener('DOMContentLoaded', () => {
   const state = {
     apiUrl: localStorage.getItem('ai_career_api_url') || detectDefaultApiUrl(),
     activeTab: 'tab-ats',
-    uploadedFile: null,
     resumeUploaded: false,
-    uploadDetails: null,
-    lastAnalysis: null,
+    resumeFilename: 'resume.pdf',
+    provider: 'local',
+    threadId: localStorage.getItem('ai_copilot_thread_id') || generateThreadId(),
+    selectedModalFile: null,
     isAnalyzing: false,
-    isAsking: false
+    isAsking: false,
+    isUploading: false
   };
 
   function detectDefaultApiUrl() {
@@ -22,6 +24,12 @@ document.addEventListener('DOMContentLoaded', () => {
       return window.location.origin;
     }
     return 'http://127.0.0.1:8000';
+  }
+
+  function generateThreadId() {
+    const newId = 'thread_' + Math.random().toString(36).substring(2, 11);
+    localStorage.setItem('ai_copilot_thread_id', newId);
+    return newId;
   }
 
   // Preset Job Descriptions
@@ -77,15 +85,33 @@ Requirements:
     statusBadge: document.getElementById('status-badge'),
     statusPing: document.getElementById('status-ping'),
     statusText: document.getElementById('status-text'),
+    providerToggleBtn: document.getElementById('provider-toggle-btn'),
     
-    // Form Elements
+    // Resume Navigation & Banner Elements
+    changeResumeNavBtn: document.getElementById('change-resume-nav-btn'),
+    navResumeLabel: document.getElementById('nav-resume-label'),
+    changeResumeFormBtn: document.getElementById('change-resume-form-btn'),
+    activeResumeBanner: document.getElementById('active-resume-banner'),
+    activeResumeName: document.getElementById('active-resume-name'),
+    activeResumeDesc: document.getElementById('active-resume-desc'),
+
+    // Resume Modal Elements
+    resumeModal: document.getElementById('resume-modal'),
+    closeResumeModalBtn: document.getElementById('close-resume-modal-btn'),
+    cancelResumeModalBtn: document.getElementById('cancel-resume-modal-btn'),
+    modalResumeForm: document.getElementById('modal-resume-form'),
+    modalDropzone: document.getElementById('modal-dropzone'),
+    modalResumeInput: document.getElementById('modal-resume-input'),
+    modalFileBadge: document.getElementById('modal-file-badge'),
+    modalFileName: document.getElementById('modal-file-name'),
+    modalFileSize: document.getElementById('modal-file-size'),
+    modalRemoveFileBtn: document.getElementById('modal-remove-file-btn'),
+    uploadResumeSubmitBtn: document.getElementById('upload-resume-submit-btn'),
+    uploadBtnText: document.getElementById('upload-btn-text'),
+    uploadBtnSpinner: document.getElementById('upload-btn-spinner'),
+    
+    // ATS Form Elements
     atsForm: document.getElementById('ats-form'),
-    dropzone: document.getElementById('dropzone'),
-    resumeInput: document.getElementById('resume-input'),
-    fileBadge: document.getElementById('file-badge'),
-    fileName: document.getElementById('file-name'),
-    fileSize: document.getElementById('file-size'),
-    removeFileBtn: document.getElementById('remove-file-btn'),
     jobDescInput: document.getElementById('job-desc'),
     presetBtns: document.querySelectorAll('.preset-btn'),
     analyzeBtn: document.getElementById('analyze-btn'),
@@ -134,7 +160,8 @@ Requirements:
 
   function init() {
     setupNavigation();
-    setupDropzone();
+    setupProviderToggle();
+    setupResumeModal();
     setupPresets();
     setupFormSubmission();
     setupChat();
@@ -142,8 +169,9 @@ Requirements:
 
     DOM.apiUrlInput.value = state.apiUrl;
     checkApiHealth();
+    checkResumeStatus();
+    checkProviderStatus();
 
-    // Periodically ping health
     setInterval(checkApiHealth, 25000);
   }
 
@@ -152,7 +180,6 @@ Requirements:
     DOM.statusText.textContent = 'Checking API...';
 
     try {
-      // Try /api/health or fallback to /
       let res = await fetch(`${state.apiUrl}/api/health`).catch(() => null);
       if (!res || !res.ok) {
         res = await fetch(`${state.apiUrl}/`).catch(() => null);
@@ -162,25 +189,46 @@ Requirements:
         DOM.statusPing.className = 'status-ping';
         DOM.statusText.textContent = `Connected (${getCleanHost(state.apiUrl)})`;
       } else {
-        // Try fallback port 8001 if 8000 failed and we are on default
-        if (state.apiUrl.includes(':8000')) {
-          const altUrl = state.apiUrl.replace(':8000', ':8001');
-          const altRes = await fetch(`${altUrl}/api/health`).catch(() => null);
-          if (altRes && altRes.ok) {
-            state.apiUrl = altUrl;
-            localStorage.setItem('ai_career_api_url', altUrl);
-            DOM.apiUrlInput.value = altUrl;
-            DOM.statusPing.className = 'status-ping';
-            DOM.statusText.textContent = `Connected (${getCleanHost(altUrl)})`;
-            return;
-          }
-        }
         DOM.statusPing.className = 'status-ping offline';
-        DOM.statusText.textContent = 'API Disconnected';
+        DOM.statusText.textContent = 'API Offline';
       }
     } catch (err) {
       DOM.statusPing.className = 'status-ping offline';
       DOM.statusText.textContent = 'API Offline';
+    }
+  }
+
+  async function checkResumeStatus() {
+    try {
+      const res = await fetch(`${state.apiUrl}/copilot/resume-status`).catch(() => null);
+      if (res && res.ok) {
+        const data = await res.json();
+        if (data.uploaded) {
+          state.resumeUploaded = true;
+          state.resumeFilename = data.filename || 'resume.pdf';
+          updateResumeUI();
+          return;
+        }
+      }
+      // If no resume uploaded, prompt modal
+      state.resumeUploaded = false;
+      updateResumeUI();
+      openResumeModal();
+    } catch (e) {
+      console.warn("Could not fetch resume status:", e);
+    }
+  }
+
+  async function checkProviderStatus() {
+    try {
+      const res = await fetch(`${state.apiUrl}/copilot/provider`).catch(() => null);
+      if (res && res.ok) {
+        const data = await res.json();
+        state.provider = data.provider || 'local';
+        updateProviderPillUI();
+      }
+    } catch (e) {
+      console.warn("Could not fetch provider status:", e);
     }
   }
 
@@ -194,28 +242,63 @@ Requirements:
   }
 
   // ==========================================
-  // 3. Navigation & Tabs
+  // 3. Provider Selector Pill (Local vs Cloud)
   // ==========================================
-  function setupNavigation() {
-    DOM.navTabs.forEach(tab => {
-      tab.addEventListener('click', () => {
-        const targetTab = tab.getAttribute('data-tab');
-        DOM.navTabs.forEach(t => t.classList.remove('active'));
-        DOM.viewPanels.forEach(p => p.classList.remove('active'));
+  function setupProviderToggle() {
+    DOM.providerToggleBtn.addEventListener('click', async () => {
+      const targetProvider = state.provider === 'local' ? 'cloud' : 'local';
+      showToast(`Switching LLM Provider to ${targetProvider.toUpperCase()}...`, 'info');
 
-        tab.classList.add('active');
-        document.getElementById(targetTab).classList.add('active');
-        state.activeTab = targetTab;
-      });
+      try {
+        const res = await fetch(`${state.apiUrl}/copilot/provider`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ provider: targetProvider })
+        });
+
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({}));
+          throw new Error(errData.detail || 'Failed to switch LLM provider');
+        }
+
+        const data = await res.json();
+        state.provider = data.provider;
+        updateProviderPillUI();
+        showToast(`Provider active: ${state.provider === 'cloud' ? 'Cloud (Groq API)' : 'Local (Qwen 7B)'}`, 'success');
+
+      } catch (err) {
+        console.error(err);
+        showToast(err.message || 'Error switching provider', 'error');
+      }
     });
   }
 
+  function updateProviderPillUI() {
+    const isCloud = state.provider === 'cloud';
+    DOM.providerToggleBtn.className = `provider-pill ${isCloud ? 'cloud' : 'local'}`;
+    DOM.providerToggleBtn.innerHTML = isCloud 
+      ? '☁️ Cloud (Groq API)'
+      : '⚡ Local (Qwen 7B)';
+  }
+
   // ==========================================
-  // 4. File Drag & Drop Handlers
+  // 4. Resume Upload Modal & State Management
   // ==========================================
-  function setupDropzone() {
-    const dropzone = DOM.dropzone;
-    const input = DOM.resumeInput;
+  function setupResumeModal() {
+    DOM.changeResumeNavBtn.addEventListener('click', openResumeModal);
+    DOM.changeResumeFormBtn.addEventListener('click', openResumeModal);
+    DOM.closeResumeModalBtn.addEventListener('click', closeResumeModal);
+    DOM.cancelResumeModalBtn.addEventListener('click', closeResumeModal);
+
+    DOM.resumeModal.addEventListener('click', (e) => {
+      if (e.target === DOM.resumeModal && state.resumeUploaded) {
+        closeResumeModal();
+      }
+    });
+
+    // Dropzone Handlers inside Modal
+    const dropzone = DOM.modalDropzone;
+    const input = DOM.modalResumeInput;
 
     ['dragenter', 'dragover'].forEach(eventName => {
       dropzone.addEventListener(eventName, (e) => {
@@ -236,27 +319,80 @@ Requirements:
     dropzone.addEventListener('drop', (e) => {
       const files = e.dataTransfer.files;
       if (files && files.length > 0) {
-        handleFileSelection(files[0]);
+        handleModalFileSelection(files[0]);
       }
     });
 
-    input.addEventListener('change', (e) => {
+    input.addEventListener('change', () => {
       if (input.files && input.files.length > 0) {
-        handleFileSelection(input.files[0]);
+        handleModalFileSelection(input.files[0]);
       }
     });
 
-    DOM.removeFileBtn.addEventListener('click', () => {
-      state.uploadedFile = null;
-      state.resumeUploaded = false;
-      DOM.resumeInput.value = '';
-      DOM.fileBadge.classList.remove('active');
-      DOM.dropzone.style.display = 'block';
-      showToast('Resume file removed', 'info');
+    DOM.modalRemoveFileBtn.addEventListener('click', () => {
+      state.selectedModalFile = null;
+      DOM.modalResumeInput.value = '';
+      DOM.modalFileBadge.classList.remove('active');
+      DOM.modalDropzone.style.display = 'block';
+    });
+
+    // Modal Form Submission
+    DOM.modalResumeForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (!state.selectedModalFile) {
+        showToast('Please select a PDF resume file to upload.', 'error');
+        return;
+      }
+
+      setModalUploading(true);
+
+      try {
+        const formData = new FormData();
+        formData.append('file', state.selectedModalFile);
+
+        showToast('Uploading resume & initializing vector index...', 'info');
+
+        const uploadRes = await fetch(`${state.apiUrl}/upload`, {
+          method: 'POST',
+          body: formData
+        });
+
+        if (!uploadRes.ok) {
+          const errData = await uploadRes.json().catch(() => ({}));
+          throw new Error(errData.detail || `Upload failed (${uploadRes.status})`);
+        }
+
+        const uploadData = await uploadRes.json();
+        state.resumeUploaded = true;
+        state.resumeFilename = uploadData.filename || state.selectedModalFile.name;
+        state.selectedModalFile = null;
+
+        updateResumeUI();
+        closeResumeModal();
+        showToast('Resume uploaded and processed successfully!', 'success');
+
+      } catch (err) {
+        console.error(err);
+        showToast(err.message || 'Error uploading resume PDF', 'error');
+      } finally {
+        setModalUploading(false);
+      }
     });
   }
 
-  function handleFileSelection(file) {
+  function openResumeModal() {
+    DOM.resumeModal.classList.add('active');
+  }
+
+  function closeResumeModal() {
+    if (!state.resumeUploaded && !state.selectedModalFile) {
+      showToast('Please upload a resume PDF to proceed.', 'error');
+      return;
+    }
+    DOM.resumeModal.classList.remove('active');
+  }
+
+  function handleModalFileSelection(file) {
     if (file.type !== 'application/pdf' && !file.name.toLowerCase().endsWith('.pdf')) {
       showToast('Please select a valid PDF file.', 'error');
       return;
@@ -267,12 +403,37 @@ Requirements:
       return;
     }
 
-    state.uploadedFile = file;
-    DOM.fileName.textContent = file.name;
-    DOM.fileSize.textContent = formatBytes(file.size);
-    DOM.fileBadge.classList.add('active');
-    DOM.dropzone.style.display = 'none';
-    showToast(`Loaded ${file.name}`, 'success');
+    state.selectedModalFile = file;
+    DOM.modalFileName.textContent = file.name;
+    DOM.modalFileSize.textContent = formatBytes(file.size);
+    DOM.modalFileBadge.classList.add('active');
+    DOM.modalDropzone.style.display = 'none';
+  }
+
+  function updateResumeUI() {
+    if (state.resumeUploaded) {
+      DOM.navResumeLabel.textContent = 'Change Resume';
+      DOM.activeResumeName.textContent = state.resumeFilename;
+      DOM.activeResumeDesc.textContent = 'Active & indexed for ATS Studio and AI Copilot';
+      DOM.activeResumeBanner.className = 'active-resume-card';
+    } else {
+      DOM.navResumeLabel.textContent = 'Upload Resume';
+      DOM.activeResumeName.textContent = 'No resume uploaded';
+      DOM.activeResumeDesc.textContent = 'Click "Upload Resume" to get started';
+      DOM.activeResumeBanner.className = 'active-resume-card missing';
+    }
+  }
+
+  function setModalUploading(isUploading) {
+    state.isUploading = isUploading;
+    DOM.uploadResumeSubmitBtn.disabled = isUploading;
+    if (isUploading) {
+      DOM.uploadBtnText.textContent = 'Processing PDF...';
+      DOM.uploadBtnSpinner.style.display = 'block';
+    } else {
+      DOM.uploadBtnText.textContent = 'Upload & Save Resume';
+      DOM.uploadBtnSpinner.style.display = 'none';
+    }
   }
 
   function formatBytes(bytes, decimals = 1) {
@@ -285,7 +446,24 @@ Requirements:
   }
 
   // ==========================================
-  // 5. Presets & Sample Fillers
+  // 5. Navigation & Tabs
+  // ==========================================
+  function setupNavigation() {
+    DOM.navTabs.forEach(tab => {
+      tab.addEventListener('click', () => {
+        const targetTab = tab.getAttribute('data-tab');
+        DOM.navTabs.forEach(t => t.classList.remove('active'));
+        DOM.viewPanels.forEach(p => p.classList.remove('active'));
+
+        tab.classList.add('active');
+        document.getElementById(targetTab).classList.add('active');
+        state.activeTab = targetTab;
+      });
+    });
+  }
+
+  // ==========================================
+  // 6. Presets & Sample Fillers
   // ==========================================
   function setupPresets() {
     DOM.presetBtns.forEach(btn => {
@@ -300,11 +478,17 @@ Requirements:
   }
 
   // ==========================================
-  // 6. ATS Analysis Form Submission
+  // 7. ATS Analysis Form Submission
   // ==========================================
   function setupFormSubmission() {
     DOM.atsForm.addEventListener('submit', async (e) => {
       e.preventDefault();
+
+      if (!state.resumeUploaded) {
+        showToast('Please upload your resume first!', 'error');
+        openResumeModal();
+        return;
+      }
 
       const jobDescription = DOM.jobDescInput.value.trim();
       if (!jobDescription) {
@@ -312,38 +496,9 @@ Requirements:
         return;
       }
 
-      if (!state.uploadedFile && !state.resumeUploaded) {
-        showToast('Please upload your resume PDF first.', 'error');
-        return;
-      }
-
       setAnalyzeLoading(true);
 
       try {
-        // Step A: Upload Resume if a new file is selected
-        if (state.uploadedFile) {
-          showToast('Uploading resume & building vector store...', 'info');
-          const formData = new FormData();
-          formData.append('file', state.uploadedFile);
-
-          const uploadRes = await fetch(`${state.apiUrl}/upload`, {
-            method: 'POST',
-            body: formData
-          });
-
-          if (!uploadRes.ok) {
-            const errData = await uploadRes.json().catch(() => ({}));
-            throw new Error(errData.detail || `Resume upload failed (${uploadRes.status})`);
-          }
-
-          const uploadJson = await uploadRes.json();
-          state.uploadDetails = uploadJson;
-          state.resumeUploaded = true;
-          state.uploadedFile = null; // reset raw file so we don't upload repeatedly
-          showToast(`Resume uploaded! (${uploadJson.num_pages || 1} pages parsed)`, 'success');
-        }
-
-        // Step B: Send ATS Analysis Request
         showToast('Running ATS match evaluation...', 'info');
         let reviewRes = await fetch(`${state.apiUrl}/ats`, {
           method: 'POST',
@@ -351,7 +506,6 @@ Requirements:
           body: JSON.stringify({ job_description: jobDescription })
         }).catch(() => null);
 
-        // Fallback endpoint test: /review
         if (!reviewRes || !reviewRes.ok) {
           reviewRes = await fetch(`${state.apiUrl}/review`, {
             method: 'POST',
@@ -366,7 +520,6 @@ Requirements:
         }
 
         const analysisData = await reviewRes.json();
-        state.lastAnalysis = analysisData;
         renderAnalysisResults(analysisData);
         showToast('ATS Match Analysis Completed!', 'success');
 
@@ -397,9 +550,6 @@ Requirements:
     }
   }
 
-  // ==========================================
-  // 7. Render ATS Results & Gauge Animations
-  // ==========================================
   function renderAnalysisResults(data) {
     DOM.resultsEmpty.style.display = 'none';
     DOM.resultsContent.style.display = 'block';
@@ -407,17 +557,14 @@ Requirements:
 
     DOM.analysisSubtitle.textContent = `Analyzed at ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
 
-    // Overall Score
     const overallScore = Math.min(100, Math.max(0, data.overall_score || 0));
     DOM.overallScoreVal.textContent = overallScore;
     updateGauge(DOM.overallFill, overallScore);
 
-    // Keyword Match
     const keywordScore = Math.min(100, Math.max(0, data.keyword_match || 0));
     DOM.keywordScoreVal.textContent = keywordScore;
     updateGauge(DOM.keywordFill, keywordScore);
 
-    // Missing Keywords
     const missingKeywords = data.missing_keywords || [];
     DOM.missingCountBadge.textContent = `${missingKeywords.length} Missing`;
     DOM.missingTagsContainer.innerHTML = '';
@@ -444,7 +591,6 @@ Requirements:
       });
     }
 
-    // Strengths
     renderListItems(DOM.strengthsContainer, data.strengths || [], 'strength', `
       <svg class="item-icon strength" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
         <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
@@ -452,7 +598,6 @@ Requirements:
       </svg>
     `);
 
-    // Weaknesses
     renderListItems(DOM.weaknessesContainer, data.weaknesses || [], 'weakness', `
       <svg class="item-icon weakness" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
         <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
@@ -461,12 +606,11 @@ Requirements:
       </svg>
     `);
 
-    // Suggestions
     renderSuggestionsItems(DOM.suggestionsContainer, data.suggestions || []);
   }
 
   function updateGauge(circleEl, score) {
-    const circumference = 314; // 2 * pi * 50
+    const circumference = 314;
     const offset = circumference - (score / 100) * circumference;
     circleEl.style.strokeDashoffset = offset;
   }
@@ -519,7 +663,7 @@ Requirements:
   }
 
   // ==========================================
-  // 8. Copilot Q&A Chat Handler
+  // 8. Copilot Q&A Chat Handler (Memory Enabled)
   // ==========================================
   function setupChat() {
     DOM.chatForm.addEventListener('submit', async (e) => {
@@ -541,18 +685,19 @@ Requirements:
     });
 
     DOM.clearChatBtn.addEventListener('click', () => {
+      state.threadId = generateThreadId();
       DOM.chatMessages.innerHTML = `
         <div class="message-row assistant">
           <div class="message-avatar">AI</div>
           <div>
             <div class="message-bubble">
-              Chat history cleared! Feel free to ask another question about your uploaded resume.
+              Started a new conversation session! Feel free to ask another question about your resume.
             </div>
             <span class="message-time">Just now</span>
           </div>
         </div>
       `;
-      showToast('Chat history cleared', 'info');
+      showToast('Started new conversation thread', 'info');
     });
   }
 
@@ -560,26 +705,27 @@ Requirements:
     if (state.isAsking) return;
 
     if (!state.resumeUploaded) {
-      showToast('Please upload a resume PDF in the ATS Studio tab first!', 'error');
-      // Prompt user to switch tab
+      showToast('Please upload a resume PDF first!', 'error');
+      openResumeModal();
       return;
     }
 
-    // Append User Question Bubble
     appendChatMessage('user', question);
     DOM.chatInput.value = '';
 
-    // Append Assistant Loading Bubble
     const loadingId = 'loading-' + Date.now();
     appendLoadingMessage(loadingId);
     state.isAsking = true;
     DOM.chatSendBtn.disabled = true;
 
     try {
-      const res = await fetch(`${state.apiUrl}/ask`, {
+      const res = await fetch(`${state.apiUrl}/copilot/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ question: question })
+        body: JSON.stringify({
+          message: question,
+          thread_id: state.threadId
+        })
       });
 
       if (!res.ok) {
@@ -589,13 +735,13 @@ Requirements:
 
       const data = await res.json();
       removeLoadingMessage(loadingId);
-      appendChatMessage('assistant', data.answer || 'No response returned.');
+      appendChatMessage('assistant', data.message || 'No response returned.');
 
     } catch (err) {
       console.error(err);
       removeLoadingMessage(loadingId);
-      appendChatMessage('assistant', `⚠️ Sorry, I ran into an error answering your question: ${err.message}`);
-      showToast('Error getting chat answer', 'error');
+      appendChatMessage('assistant', `⚠️ Error processing response: ${err.message}`);
+      showToast('Error getting chat response', 'error');
     } finally {
       state.isAsking = false;
       DOM.chatSendBtn.disabled = false;
@@ -630,7 +776,7 @@ Requirements:
       <div>
         <div class="message-bubble" style="display: flex; align-items: center; gap: 8px;">
           <div class="spinner" style="width: 14px; height: 14px; border-width: 2px;"></div>
-          <span>Thinking & retrieving vector context...</span>
+          <span>Processing with memory agent...</span>
         </div>
       </div>
     `;
@@ -644,15 +790,33 @@ Requirements:
   }
 
   function formatMarkdown(text) {
+    if (!text) return '';
     let html = escapeHtml(text);
-    // Convert bold **text**
+    
+    // Convert markdown headers (### Header, ## Header, # Header) to styled headings without hashtags
+    html = html.replace(/^(?:#{1,6})\s*(.*?)$/gm, '<strong style="display:block; font-size: 1.05em; margin-top: 12px; margin-bottom: 4px; color: var(--primary-light);">$1</strong>');
+    
+    // Convert bold text **text**
     html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+    
+    // Convert italic text *text*
+    html = html.replace(/\*(.*?)\*/g, '<em>$1</em>');
+    
     // Convert inline code `text`
     html = html.replace(/`(.*?)`/g, '<code style="font-family: var(--font-mono); background: rgba(0,0,0,0.3); padding: 2px 6px; border-radius: 4px;">$1</code>');
-    // Convert bullet line breaks
-    html = html.replace(/\n- /g, '<br/>• ');
-    html = html.replace(/\n\d+\.\s/g, '<br/>1. ');
+    
+    // Replace horizontal rules ---
+    html = html.replace(/^---$/gm, '<hr style="border: 0; border-top: 1px solid var(--border-color); margin: 12px 0;" />');
+
+    // Convert bullet points (- item or * item)
+    html = html.replace(/^[•\-\*]\s+(.*?)$/gm, '• $1');
+
+    // Convert line breaks
     html = html.replace(/\n/g, '<br/>');
+    
+    // Clean up duplicate line breaks
+    html = html.replace(/(<br\/>){3,}/g, '<br/><br/>');
+    
     return html;
   }
 
@@ -696,7 +860,7 @@ Requirements:
     DOM.saveSettingsBtn.addEventListener('click', () => {
       const newUrl = DOM.apiUrlInput.value.trim();
       if (newUrl) {
-        state.apiUrl = newUrl.replace(/\/$/, ''); // strip trailing slash
+        state.apiUrl = newUrl.replace(/\/$/, '');
         localStorage.setItem('ai_career_api_url', state.apiUrl);
         showToast('Saved API Base URL', 'success');
         checkApiHealth();
@@ -706,32 +870,21 @@ Requirements:
   }
 
   function exportReport() {
-    if (!state.lastAnalysis) return;
-
-    const data = state.lastAnalysis;
+    const overallScore = DOM.overallScoreVal.textContent;
+    const keywordScore = DOM.keywordScoreVal.textContent;
+    
     const reportText = `================================================
 AI CAREER COPILOT - ATS ANALYSIS REPORT
 Date: ${new Date().toLocaleString()}
 ================================================
 
-OVERALL ATS SCORE: ${data.overall_score}/100
-KEYWORD MATCH:    ${data.keyword_match}/100
+OVERALL ATS SCORE: ${overallScore}/100
+KEYWORD MATCH:    ${keywordScore}/100
 
-MISSING KEYWORDS:
-${(data.missing_keywords || []).map(k => ' - ' + k).join('\n') || ' None'}
-
-KEY STRENGTHS:
-${(data.strengths || []).map(s => ' - ' + s).join('\n') || ' None'}
-
-WEAKNESSES / GAPS:
-${(data.weaknesses || []).map(w => ' - ' + w).join('\n') || ' None'}
-
-ACTIONABLE ATS SUGGESTIONS:
-${(data.suggestions || []).map(s => ' - ' + s).join('\n') || ' None'}
 ================================================`;
 
     navigator.clipboard.writeText(reportText);
-    showToast('Full ATS Report copied to clipboard!', 'success');
+    showToast('ATS Report summary copied to clipboard!', 'success');
   }
 
   function showToast(message, type = 'info') {
@@ -744,7 +897,7 @@ ${(data.suggestions || []).map(s => ' - ' + s).join('\n') || ' None'}
     } else if (type === 'error') {
       iconSvg = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent-rose)" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>';
     } else {
-      iconSvg = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--primary-light)" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>';
+      iconSvg = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--primary-light)" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="18"/></svg>';
     }
 
     toast.innerHTML = `${iconSvg}<span>${escapeHtml(message)}</span>`;
