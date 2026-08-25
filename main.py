@@ -5,6 +5,7 @@ from fastapi.staticfiles import StaticFiles
 
 from routes.resume import router as resume_router
 from routes import review
+from routes.copilot import router as copilot_router
 
 app = FastAPI(title="AI Career Copilot API")
 
@@ -21,6 +22,10 @@ app.include_router(resume_router)
 app.include_router(
     review.router,
     tags=["ATS Checker"],
+)
+app.include_router(
+    copilot_router,
+    tags=["Copilot"],
 )
 
 @app.get("/api/health")

@@ -20,7 +20,7 @@ class RemoteEmbeddings:
 
 embeddings = RemoteEmbeddings()
 
-def create_vector_store(chunks, persist_directory="./chroma_db"):
+def create_vector_store(chunks, persist_directory=CHROMA_DIR):
     vector_store = Chroma.from_documents(
         documents = chunks,
         embedding = embeddings,

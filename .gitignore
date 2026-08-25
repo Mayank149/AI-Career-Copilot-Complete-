@@ -1,4 +1,6 @@
-__pycache__
+__pycache__/
 *.pdf
-.vscode
+.vscode/
 chroma_db/
+uploads/
+.env

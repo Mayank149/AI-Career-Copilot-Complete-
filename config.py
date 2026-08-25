@@ -1,12 +1,24 @@
+import os
+from pathlib import Path
+from dotenv import load_dotenv
+
+BASE_DIR = Path(__file__).resolve().parent
+
+# Load environment variables from .env file
+load_dotenv(BASE_DIR / ".env")
+
 # Directories
-UPLOAD_DIR = "uploads"
-CHROMA_DIR = "chroma_db"
+UPLOAD_DIR = str(BASE_DIR / "uploads")
+CHROMA_DIR = str(BASE_DIR / "chroma_db")
 
 # Embedding Model
 EMBEDDING_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
 
 # LLM
 LLM_MODEL = "qwen2.5:7b"
+LLM_PROVIDER = os.getenv("LLM_PROVIDER", "cloud")  # "local" for Qwen/Ollama, "cloud" for Groq API
+GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
+GROQ_MODEL = os.getenv("GROQ_MODEL", "qwen/qwen3.6-27b")
 
 # Text Splitting
 CHUNK_SIZE = 500
