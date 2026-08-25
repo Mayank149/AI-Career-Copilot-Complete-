@@ -1,6 +1,6 @@
 from langchain_core.tools import tool
 from services.resume_service import get_resume_text
-from services.llm_service import get_llm
+from services.llm_service import get_llm, clean_llm_output
 
 @tool
 def analyze_skill_gap(target_role : str) -> str:
@@ -48,6 +48,7 @@ Formatting Instructions:
 - Do not use markdown header hashtags (do not use #, ##, or ###).
 - Use clean bold titles (e.g. **Current Relevant Skills**), bullet points, and numbered lists.
 - Keep responses well-organized, clean, and direct.
+- Do not output thinking, internal monologue, or <think> tags.
 
 Only use information from the resume when describing the
 candidate's current skills and experience.
@@ -57,4 +58,4 @@ in the resume.
 """
 
     response = llm.invoke(prompt)
-    return response.content
+    return clean_llm_output(response.content)
