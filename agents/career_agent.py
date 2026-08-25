@@ -1,5 +1,4 @@
 from typing import TypedDict
-from langgraph.graph import StateGraph, START, END
 from langgraph.checkpoint.memory import MemorySaver
 from langchain.agents import create_agent
 from tools.resume_tools import search_resume
@@ -41,4 +40,3 @@ Guidelines:
 5. Do not use raw markdown header hashtags (#, ##, or ###). Format section headers using clean bold titles (e.g. **Current Relevant Skills**), bullet points, and numbered lists.
 """
 )
-

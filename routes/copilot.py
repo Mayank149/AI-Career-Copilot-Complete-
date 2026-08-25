@@ -3,7 +3,7 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
 import config
-from graphs.career_graph import career_agent
+from agents.career_agent import career_agent
 
 router = APIRouter()
 

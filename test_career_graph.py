@@ -1,4 +1,4 @@
-from graphs.career_graph import career_agent
+from agents.career_agent import career_agent
 
 
 config = {
