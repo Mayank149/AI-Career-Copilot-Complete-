@@ -1,0 +1,37 @@
+services:
+  embedding_service:
+    build:
+      context: ./embedding_service
+      dockerfile: Dockerfile
+    container_name: ai_career_embedding_service
+    ports:
+      - "8001:8001"
+    volumes:
+      - hf_cache:/root/.cache/huggingface
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: .
+      dockerfile: ./backend/Dockerfile
+    container_name: ai_career_backend
+    ports:
+      - "8000:8000"
+    environment:
+      - EMBEDDING_SERVICE_URL=http://embedding_service:8001/embed
+      - GROQ_API_KEY=${GROQ_API_KEY:-}
+      - GROQ_MODEL=${GROQ_MODEL:-openai/gpt-oss-120b}
+      - LLM_PROVIDER=${LLM_PROVIDER:-cloud}
+      - LLM_MODEL=${LLM_MODEL:-qwen2.5:7b}
+    env_file:
+      - path: ./backend/.env
+        required: false
+    volumes:
+      - ./backend/uploads:/app/backend/uploads
+      - ./backend/chroma_db:/app/backend/chroma_db
+    depends_on:
+      - embedding_service
+    restart: unless-stopped
+
+volumes:
+  hf_cache:
