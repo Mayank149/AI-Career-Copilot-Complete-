@@ -1,11 +1,7 @@
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import RunnablePassthrough
 from langchain_core.output_parsers import StrOutputParser
-from langchain_ollama import ChatOllama
-from config import LLM_MODEL
 from services.llm_service import get_llm
-
-llm = get_llm()
 
 prompt = ChatPromptTemplate.from_template("""
 You are an AI Career Copilot.
@@ -28,10 +24,10 @@ Question:
 
 def format_docs(docs):
     context = "\n\n".join(doc.page_content for doc in docs)
-
     return context
 
 def create_rag_chain(retriever):
+    llm = get_llm()
     return (
         {
             "context" : retriever | format_docs,
@@ -41,4 +37,3 @@ def create_rag_chain(retriever):
         | llm
         | StrOutputParser()
     )
-
