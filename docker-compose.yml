@@ -24,6 +24,8 @@ services:
       - LLM_PROVIDER=${LLM_PROVIDER:-cloud}
       - LLM_MODEL=${LLM_MODEL:-qwen2.5:7b}
     env_file:
+      - path: ./.env
+        required: false
       - path: ./backend/.env
         required: false
     volumes:
