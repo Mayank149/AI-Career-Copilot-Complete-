@@ -1,15 +1,14 @@
 import requests
-
-embedding_url = "http://localhost:8001/embed"
+import config
 
 def get_embeddings(texts: list[str]) -> list[list[float]]:
+    url = getattr(config, 'EMBEDDING_SERVICE_URL', 'http://localhost:8001/embed')
     response = requests.post(
-        embedding_url,
+        url,
         json = {"texts": texts},
-        timeout = 30
+        timeout = 60
     )
 
     response.raise_for_status()
 
     return response.json()["embeddings"]
-    

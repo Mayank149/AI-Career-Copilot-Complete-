@@ -11,8 +11,9 @@ load_dotenv(BASE_DIR / ".env")
 UPLOAD_DIR = str(BASE_DIR / "uploads")
 CHROMA_DIR = str(BASE_DIR / "chroma_db")
 
-# Embedding Model
+# Embedding Model & Service
 EMBEDDING_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
+EMBEDDING_SERVICE_URL = os.getenv("EMBEDDING_SERVICE_URL", "http://localhost:8001/embed")
 
 # LLM
 LLM_MODEL = "qwen2.5:7b"
