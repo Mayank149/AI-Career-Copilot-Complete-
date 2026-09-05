@@ -11,14 +11,14 @@
   --bg-glass: rgba(15, 23, 42, 0.65);
   
   --border-color: rgba(255, 255, 255, 0.08);
-  --border-hover: rgba(99, 102, 241, 0.35);
-  --border-focus: #6366f1;
+  --border-hover: rgba(16, 185, 129, 0.35);
+  --border-focus: #10b981;
 
-  --primary: #6366f1;
-  --primary-light: #818cf8;
-  --primary-dark: #4f46e5;
-  --primary-gradient: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #d946ef 100%);
-  --primary-glow: rgba(99, 102, 241, 0.25);
+  --primary: #10b981;
+  --primary-light: #6ee7b7;
+  --primary-dark: #059669;
+  --primary-gradient: linear-gradient(135deg, #10b981 0%, #34d399 50%, #059669 100%);
+  --primary-glow: rgba(16, 185, 129, 0.25);
 
   --accent-cyan: #06b6d4;
   --accent-emerald: #10b981;
@@ -40,7 +40,7 @@
   --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.2);
   --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.35);
   --shadow-lg: 0 16px 40px rgba(0, 0, 0, 0.5);
-  --shadow-glow: 0 0 30px rgba(99, 102, 241, 0.2);
+  --shadow-glow: 0 0 30px rgba(16, 185, 129, 0.2);
 
   --transition-fast: 0.15s ease;
   --transition-normal: 0.25s cubic-bezier(0.16, 1, 0.3, 1);
@@ -84,7 +84,7 @@ html, body {
 .glow-orb-1 {
   width: 500px;
   height: 500px;
-  background: radial-gradient(circle, #4f46e5 0%, rgba(79, 70, 229, 0) 70%);
+  background: radial-gradient(circle, #059669 0%, rgba(5, 150, 105, 0) 70%);
   top: -100px;
   left: -100px;
 }
@@ -92,7 +92,7 @@ html, body {
 .glow-orb-2 {
   width: 600px;
   height: 600px;
-  background: radial-gradient(circle, #8b5cf6 0%, rgba(139, 92, 246, 0) 70%);
+  background: radial-gradient(circle, #34d399 0%, rgba(52, 211, 153, 0) 70%);
   bottom: -150px;
   right: -100px;
   animation-delay: -7s;
@@ -181,9 +181,9 @@ html, body {
   letter-spacing: 0.08em;
   padding: 2px 8px;
   border-radius: var(--radius-full);
-  background: rgba(99, 102, 241, 0.15);
+  background: rgba(16, 185, 129, 0.15);
   color: var(--primary-light);
-  border: 1px solid rgba(99, 102, 241, 0.3);
+  border: 1px solid rgba(16, 185, 129, 0.3);
 }
 
 /* Nav Tabs */
@@ -222,7 +222,7 @@ html, body {
 .nav-tab.active {
   color: #fff;
   background: var(--primary);
-  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.35);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.35);
 }
 
 .nav-tab svg {
@@ -247,8 +247,8 @@ html, body {
 }
 
 .provider-pill.local {
-  border-color: rgba(99, 102, 241, 0.4);
-  background: rgba(99, 102, 241, 0.12);
+  border-color: rgba(16, 185, 129, 0.4);
+  background: rgba(16, 185, 129, 0.12);
   color: var(--primary-light);
 }
 
@@ -347,8 +347,8 @@ html, body {
   gap: 0.5rem;
   padding: 0.35rem 1rem;
   border-radius: var(--radius-full);
-  background: rgba(99, 102, 241, 0.1);
-  border: 1px solid rgba(99, 102, 241, 0.25);
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.25);
   color: var(--primary-light);
   font-size: 0.8rem;
   font-weight: 600;
@@ -361,7 +361,7 @@ html, body {
   line-height: 1.15;
   letter-spacing: -0.03em;
   margin-bottom: 0.75rem;
-  background: linear-gradient(135deg, #ffffff 30%, #a5b4fc 100%);
+  background: linear-gradient(135deg, #ffffff 30%, #6ee7b7 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
@@ -437,8 +437,8 @@ html, body {
   width: 36px;
   height: 36px;
   border-radius: var(--radius-md);
-  background: rgba(99, 102, 241, 0.12);
-  border: 1px solid rgba(99, 102, 241, 0.25);
+  background: rgba(16, 185, 129, 0.12);
+  border: 1px solid rgba(16, 185, 129, 0.25);
   color: var(--primary-light);
   display: flex;
   align-items: center;
@@ -486,8 +486,8 @@ html, body {
   justify-content: space-between;
   padding: 1rem 1.25rem;
   border-radius: var(--radius-md);
-  background: rgba(99, 102, 241, 0.08);
-  border: 1px solid rgba(99, 102, 241, 0.25);
+  background: rgba(16, 185, 129, 0.08);
+  border: 1px solid rgba(16, 185, 129, 0.25);
 }
 
 .active-resume-card.missing {
@@ -526,7 +526,7 @@ html, body {
 
 .dropzone:hover, .dropzone.dragover {
   border-color: var(--primary-light);
-  background: rgba(99, 102, 241, 0.06);
+  background: rgba(16, 185, 129, 0.06);
 }
 
 .dropzone-input {
@@ -543,7 +543,7 @@ html, body {
   height: 48px;
   margin: 0 auto 0.75rem;
   border-radius: var(--radius-full);
-  background: rgba(99, 102, 241, 0.1);
+  background: rgba(16, 185, 129, 0.1);
   color: var(--primary-light);
   display: flex;
   align-items: center;
@@ -573,8 +573,8 @@ html, body {
   justify-content: space-between;
   padding: 0.85rem 1rem;
   border-radius: var(--radius-md);
-  background: rgba(99, 102, 241, 0.1);
-  border: 1px solid rgba(99, 102, 241, 0.3);
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.3);
   margin-top: 0.75rem;
 }
 
@@ -643,9 +643,9 @@ html, body {
 }
 
 .preset-btn:hover {
-  border-color: rgba(99, 102, 241, 0.4);
+  border-color: rgba(16, 185, 129, 0.4);
   color: var(--primary-light);
-  background: rgba(99, 102, 241, 0.08);
+  background: rgba(16, 185, 129, 0.08);
 }
 
 /* Textarea */
@@ -667,7 +667,7 @@ html, body {
 
 .textarea-styled:focus {
   border-color: var(--primary);
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.15);
 }
 
 .textarea-styled::placeholder {
@@ -696,7 +696,7 @@ html, body {
 
 .btn-primary:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(99, 102, 241, 0.4);
+  box-shadow: 0 8px 25px rgba(16, 185, 129, 0.4);
 }
 
 .btn-primary:disabled {
@@ -996,7 +996,7 @@ html, body {
   background: var(--primary);
   color: #fff;
   border-top-right-radius: 4px;
-  box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);
+  box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
 }
 
 .message-time {
@@ -1038,8 +1038,8 @@ html, body {
 }
 
 .prompt-chip:hover {
-  background: rgba(99, 102, 241, 0.1);
-  border-color: rgba(99, 102, 241, 0.3);
+  background: rgba(16, 185, 129, 0.1);
+  border-color: rgba(16, 185, 129, 0.3);
   color: var(--primary-light);
 }
 
@@ -1064,7 +1064,7 @@ html, body {
 
 .chat-input:focus {
   border-color: var(--primary);
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.15);
 }
 
 .send-btn {
