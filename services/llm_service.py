@@ -20,5 +20,6 @@ def get_llm():
 
     # Default to local Qwen model via ChatOllama
     return ChatOllama(
-        model=config.LLM_MODEL
+        model=config.LLM_MODEL,
+        base_url=config.OLLAMA_BASE_URL
     )

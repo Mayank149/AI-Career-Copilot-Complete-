@@ -17,6 +17,7 @@ EMBEDDING_SERVICE_URL = os.getenv("EMBEDDING_SERVICE_URL", "http://localhost:800
 
 # LLM
 LLM_MODEL = "qwen2.5:7b"
+OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
 LLM_PROVIDER = os.getenv("LLM_PROVIDER", "cloud")  # "local" for Qwen/Ollama, "cloud" for Groq API
 GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
 GROQ_MODEL = os.getenv("GROQ_MODEL", "openai/gpt-oss-120b")
