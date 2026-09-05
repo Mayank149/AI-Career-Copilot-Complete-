@@ -23,6 +23,9 @@ services:
       - GROQ_MODEL=${GROQ_MODEL:-openai/gpt-oss-120b}
       - LLM_PROVIDER=${LLM_PROVIDER:-cloud}
       - LLM_MODEL=${LLM_MODEL:-qwen2.5:7b}
+      - OLLAMA_BASE_URL=${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     env_file:
       - path: ./.env
         required: false
