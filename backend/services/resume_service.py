@@ -53,3 +53,44 @@ def get_resume_text():
         )
 
     return resume_text
+
+
+def backup_original_resume() -> bool:
+    """
+    Backs up resume.pdf as resume_original.pdf if a backup doesn't already exist.
+    """
+    resume_path = Path(UPLOAD_DIR) / "resume.pdf"
+    backup_path = Path(UPLOAD_DIR) / "resume_original.pdf"
+
+    if resume_path.exists() and not backup_path.exists():
+        import shutil
+        shutil.copyfile(resume_path, backup_path)
+        return True
+    return False
+
+
+def restore_original_resume() -> bool:
+    """
+    Restores resume_original.pdf back to resume.pdf and removes the backup.
+    """
+    resume_path = Path(UPLOAD_DIR) / "resume.pdf"
+    backup_path = Path(UPLOAD_DIR) / "resume_original.pdf"
+
+    if not backup_path.exists():
+        raise HTTPException(
+            status_code=400,
+            detail="No original resume backup found to revert to."
+        )
+
+    import shutil
+    shutil.copyfile(backup_path, resume_path)
+    backup_path.unlink()
+    return True
+
+
+def has_original_backup() -> bool:
+    """
+    Checks if a backup of the original resume exists.
+    """
+    backup_path = Path(UPLOAD_DIR) / "resume_original.pdf"
+    return backup_path.exists()

@@ -1,5 +1,5 @@
 from langchain_chroma import Chroma
-from config import  CHROMA_DIR
+from config import CHROMA_DIR
 from config import (
     SEARCH_TYPE,
     TOP_K,
@@ -56,7 +56,34 @@ def get_retriever():
             "fetch_k": FETCH_K,
             "lambda_mult": LAMBDA_MULT
         }
-        
     )
 
     return retriever
+
+
+def reindex_active_resume():
+    """
+    Reloads active resume.pdf, splits text into chunks, resets ChromaDB collection,
+    and indexes the new chunks.
+    """
+    from services.resume_service import load_resume_documents
+    from langchain_text_splitters import RecursiveCharacterTextSplitter
+    from config import CHUNK_SIZE, CHUNK_OVERLAP
+
+    documents = load_resume_documents()
+    text_splitter = RecursiveCharacterTextSplitter(
+        chunk_size=CHUNK_SIZE,
+        chunk_overlap=CHUNK_OVERLAP,
+    )
+    chunks = text_splitter.split_documents(documents)
+
+    # Reset existing collection if present
+    if os.path.exists(CHROMA_DIR):
+        try:
+            vs = Chroma(persist_directory=CHROMA_DIR, embedding_function=embeddings)
+            vs.delete_collection()
+        except Exception as e:
+            print(f"[WARN] Error resetting collection: {e}")
+
+    create_vector_store(chunks)
+    return len(chunks)

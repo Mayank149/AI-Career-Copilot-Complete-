@@ -735,7 +735,7 @@ Requirements:
 
       const data = await res.json();
       removeLoadingMessage(loadingId);
-      appendChatMessage('assistant', data.message || 'No response returned.');
+      appendChatMessage('assistant', data.message || 'No response returned.', data);
 
     } catch (err) {
       console.error(err);
@@ -748,17 +748,83 @@ Requirements:
     }
   }
 
-  function appendChatMessage(role, text) {
+  function appendChatMessage(role, text, payload = null) {
     const row = document.createElement('div');
     row.className = `message-row ${role}`;
     const avatarText = role === 'assistant' ? 'AI' : 'You';
     const formattedText = formatMarkdown(text);
     const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
+    let extraHtml = '';
+    if (payload && payload.type === 'resume_edit_proposal') {
+      const orig = escapeHtml(payload.target_original || '');
+      const prop = escapeHtml(payload.proposed_diff || '');
+      const expl = escapeHtml(payload.explanation || '');
+
+      extraHtml = `
+        <div class="diff-card">
+          <div class="diff-card-header">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+            <span>Proposed Resume Edit</span>
+          </div>
+          <div class="diff-block original">
+            <div class="diff-block-label">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Earlier Version
+            </div>
+            <div>${orig}</div>
+          </div>
+          <div class="diff-block proposed">
+            <div class="diff-block-label">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Proposed Version
+            </div>
+            <div>${prop}</div>
+          </div>
+          ${expl ? `<div class="diff-explanation">💡 ${expl}</div>` : ''}
+          <div class="diff-actions">
+            <button class="btn-diff-approve" onclick="window.handleResumeAction('approve')">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+              Approve & Apply
+            </button>
+            <button class="btn-diff-reject" onclick="window.promptResumeAdjustment()">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+              Request Adjustment
+            </button>
+            <button class="btn-diff-cancel" onclick="window.handleResumeAction('cancel')">
+              Cancel
+            </button>
+          </div>
+        </div>
+      `;
+    } else if (payload && (payload.download_url || payload.can_revert)) {
+      extraHtml = `
+        <div class="resume-action-card">
+          <div class="resume-action-buttons">
+            ${payload.download_url ? `
+              <a href="${state.apiUrl}${payload.download_url}" class="btn-download-resume" download="AI_Career_Copilot_Resume.pdf">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                Download Updated Resume PDF
+              </a>
+            ` : ''}
+            ${payload.can_revert ? `
+              <button class="btn-revert-resume" onclick="window.handleResumeRevert()">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+                Revert to Original Resume
+              </button>
+            ` : ''}
+          </div>
+        </div>
+      `;
+    }
+
     row.innerHTML = `
       <div class="message-avatar">${avatarText}</div>
       <div>
-        <div class="message-bubble">${formattedText}</div>
+        <div class="message-bubble">
+          ${formattedText}
+          ${extraHtml}
+        </div>
         <span class="message-time">${timeStr}</span>
       </div>
     `;
@@ -766,6 +832,83 @@ Requirements:
     DOM.chatMessages.appendChild(row);
     DOM.chatMessages.scrollTop = DOM.chatMessages.scrollHeight;
   }
+
+  window.handleResumeAction = async function(action, feedback = null) {
+    if (state.isAsking) return;
+    state.isAsking = true;
+    const loadingId = 'loading-' + Date.now();
+    appendLoadingMessage(loadingId);
+
+    try {
+      const res = await fetch(`${state.apiUrl}/copilot/resume/action`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          thread_id: state.threadId,
+          action: action,
+          feedback: feedback
+        })
+      });
+
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.detail || 'Action failed');
+      }
+
+      const data = await res.json();
+      removeLoadingMessage(loadingId);
+      appendChatMessage('assistant', data.message || 'Updated.', data);
+
+      if (data.status === 'completed') {
+        showToast('Resume updated and re-indexed!', 'success');
+        checkResumeStatus();
+      }
+    } catch (err) {
+      removeLoadingMessage(loadingId);
+      showToast(err.message, 'error');
+      appendChatMessage('assistant', `⚠️ Error processing action: ${err.message}`);
+    } finally {
+      state.isAsking = false;
+    }
+  };
+
+  window.promptResumeAdjustment = function() {
+    const feedback = prompt("What adjustments would you like to make to the proposed text?");
+    if (feedback !== null && feedback.trim()) {
+      window.handleResumeAction('reject', feedback.trim());
+    }
+  };
+
+  window.handleResumeRevert = async function() {
+    if (!confirm("Are you sure you want to revert to your original resume? All recent changes will be undone.")) return;
+    if (state.isAsking) return;
+    state.isAsking = true;
+    const loadingId = 'loading-' + Date.now();
+    appendLoadingMessage(loadingId);
+
+    try {
+      const res = await fetch(`${state.apiUrl}/copilot/resume/revert`, {
+        method: 'POST'
+      });
+
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.detail || 'Failed to revert resume');
+      }
+
+      const data = await res.json();
+      removeLoadingMessage(loadingId);
+      appendChatMessage('assistant', '↩️ ' + (data.message || 'Reverted to original resume.'));
+      showToast('Original resume restored!', 'success');
+      checkResumeStatus();
+    } catch (err) {
+      removeLoadingMessage(loadingId);
+      showToast(err.message, 'error');
+      appendChatMessage('assistant', `⚠️ Error reverting resume: ${err.message}`);
+    } finally {
+      state.isAsking = false;
+    }
+  };
 
   function appendLoadingMessage(id) {
     const row = document.createElement('div');
