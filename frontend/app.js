@@ -888,7 +888,9 @@ Requirements:
 
     try {
       const res = await fetch(`${state.apiUrl}/copilot/resume/revert`, {
-        method: 'POST'
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ thread_id: state.threadId })
       });
 
       if (!res.ok) {

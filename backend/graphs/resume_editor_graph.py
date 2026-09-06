@@ -216,3 +216,12 @@ builder.add_edge("cancel", END)
 
 editor_memory = MemorySaver()
 resume_editor_graph = builder.compile(checkpointer=editor_memory)
+
+
+def reset_editor_thread_memory(thread_id: str):
+    """Deletes stored checkpoints for a thread from the editor checkpointer."""
+    try:
+        editor_memory.delete_thread(thread_id)
+        print(f"🧹 [EDITOR MEMORY RESET] Cleared editor state for thread '{thread_id}'")
+    except Exception as e:
+        print(f"[WARN] Failed to clear editor thread memory: {e}")

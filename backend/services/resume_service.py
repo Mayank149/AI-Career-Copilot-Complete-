@@ -38,14 +38,31 @@ def load_resume_documents():
     return documents
 
 
-def get_resume_text():
+def get_resume_text() -> str:
+    """
+    Extracts text from the active resume.pdf preserving line breaks, sections,
+    and structure so downstream editing and PDF generation retain proper layout.
+    """
+    resume_path = Path(UPLOAD_DIR) / "resume.pdf"
+    if not resume_path.exists():
+        raise HTTPException(
+            status_code=404,
+            detail="Resume not found. Please upload a resume first.",
+        )
 
+    # First attempt: PyMuPDF preserves layout blocks and lines cleanly
+    try:
+        import pymupdf
+        doc = pymupdf.open(str(resume_path))
+        full_text = "\n".join(page.get_text() for page in doc)
+        if full_text.strip():
+            return full_text.strip()
+    except Exception as e:
+        print(f"[WARN] PyMuPDF extraction failed, falling back to PyPDFLoader: {e}")
+
+    # Fallback: PyPDFLoader
     documents = load_resume_documents()
-
-    resume_text = "\n\n".join(
-        doc.page_content for doc in documents
-    )
-
+    resume_text = "\n\n".join(doc.page_content for doc in documents)
     if not resume_text.strip():
         raise HTTPException(
             status_code=400,

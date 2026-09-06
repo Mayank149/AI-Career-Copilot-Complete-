@@ -6,8 +6,8 @@ from pydantic import BaseModel
 from langgraph.types import Command
 
 import config
-from agents.career_agent import career_agent
-from graphs.resume_editor_graph import resume_editor_graph
+from agents.career_agent import career_agent, reset_agent_thread_memory
+from graphs.resume_editor_graph import resume_editor_graph, reset_editor_thread_memory
 from services.resume_service import (
     has_original_backup,
     restore_original_resume
@@ -27,6 +27,9 @@ class ResumeActionRequest(BaseModel):
     thread_id: str
     action: str  # "approve", "reject", "cancel"
     feedback: Optional[str] = None
+
+class ResumeRevertRequest(BaseModel):
+    thread_id: Optional[str] = None
 
 
 @router.post("/chat")
@@ -179,15 +182,41 @@ async def handle_resume_action(request: ResumeActionRequest):
 
 @router.post("/resume/revert")
 @router.post("/copilot/resume/revert")
-async def revert_resume():
+async def revert_resume(request: Optional[ResumeRevertRequest] = None):
     """
-    Reverts the active resume back to the original uploaded version and reindexes memory.
+    Reverts the active resume back to the original uploaded version,
+    re-indexes the vector store, and clears stale agent/editor memory for the thread.
     """
     try:
         restore_original_resume()
         num_chunks = reindex_active_resume()
+
+        thread_id = request.thread_id if request else None
+        if thread_id:
+            reset_agent_thread_memory(thread_id)
+            reset_editor_thread_memory(thread_id)
+            # Seed a clean event in the thread so future LLM reasoning is grounded
+            try:
+                career_agent.invoke(
+                    {
+                        "messages": [
+                            {
+                                "role": "user",
+                                "content": (
+                                    "[SYSTEM EVENT]: The candidate has reverted their resume to the original version. "
+                                    "All previous edits or additions have been discarded. "
+                                    "Active resume is now strictly the original resume."
+                                )
+                            }
+                        ]
+                    },
+                    config={"configurable": {"thread_id": thread_id}}
+                )
+            except Exception as e:
+                print(f"[WARN] Failed to seed revert notice: {e}")
+
         return {
-            "message": "Successfully reverted to your original resume. All recent changes have been undone.",
+            "message": "Successfully reverted to your original resume. Conversation context and memory have been refreshed.",
             "reverted": True,
             "num_chunks": num_chunks
         }

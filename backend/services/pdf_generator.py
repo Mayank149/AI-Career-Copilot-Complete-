@@ -1,12 +1,36 @@
+import re
 from pathlib import Path
 from reportlab.lib.pagesizes import letter
 from reportlab.lib import colors
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, HRFlowable
 
+
+KNOWN_SECTIONS = [
+    "SKILLS", "TECHNICAL SKILLS", "EXPERIENCE", "WORK EXPERIENCE",
+    "PROFESSIONAL EXPERIENCE", "INTERNSHIP", "INTERNSHIPS", "PROJECTS",
+    "ACADEMIC PROJECTS", "PERSONAL PROJECTS", "EDUCATION", "CERTIFICATIONS",
+    "PUBLICATIONS", "ACHIEVEMENTS", "HONORS & AWARDS", "SUMMARY",
+    "PROFESSIONAL SUMMARY", "OBJECTIVE"
+]
+
+
+def clean_line_text(text: str) -> str:
+    """Removes non-printable/corrupted PDF glyphs and zero-width spaces."""
+    text = text.replace('\u200b', '')
+    text = text.replace('\ufffd', '')
+    text = text.replace('\ufeff', '')
+    return text.strip()
+
+
+def escape_xml(text: str) -> str:
+    """Escapes XML entities for ReportLab Paragraphs."""
+    return text.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
+
+
 def generate_resume_pdf(resume_text: str, output_path: str | Path) -> str:
     """
-    Generates a clean, modern, ATS-friendly PDF resume from raw text
+    Generates a sleek, executive, ATS-friendly PDF resume from structured resume text
     using ReportLab and saves it to output_path.
     """
     output_path = Path(output_path)
@@ -15,96 +39,159 @@ def generate_resume_pdf(resume_text: str, output_path: str | Path) -> str:
     doc = SimpleDocTemplate(
         str(output_path),
         pagesize=letter,
-        leftMargin=40,
-        rightMargin=40,
-        topMargin=40,
-        bottomMargin=40
+        leftMargin=36,
+        rightMargin=36,
+        topMargin=36,
+        bottomMargin=36
     )
 
     styles = getSampleStyleSheet()
 
-    # Custom styling
-    title_style = ParagraphStyle(
-        'ResumeTitle',
-        parent=styles['Heading1'],
+    name_style = ParagraphStyle(
+        'ResumeCandidateName',
+        parent=styles['Normal'],
         fontName='Helvetica-Bold',
         fontSize=18,
         leading=22,
+        alignment=1,  # Center
         textColor=colors.HexColor('#0f172a'),
-        spaceAfter=6
+        spaceAfter=3
     )
 
-    section_header_style = ParagraphStyle(
-        'ResumeSection',
+    contact_style = ParagraphStyle(
+        'ResumeContactInfo',
+        parent=styles['Normal'],
+        fontName='Helvetica',
+        fontSize=8.5,
+        leading=11.5,
+        alignment=1,  # Center
+        textColor=colors.HexColor('#475569'),
+        spaceAfter=8
+    )
+
+    section_heading_style = ParagraphStyle(
+        'ResumeSectionHeader',
         parent=styles['Heading2'],
         fontName='Helvetica-Bold',
-        fontSize=12,
-        leading=16,
-        textColor=colors.HexColor('#059669'),  # Emerald brand color
-        spaceBefore=10,
-        spaceAfter=4,
+        fontSize=11,
+        leading=14,
+        textColor=colors.HexColor('#0f766e'),  # Elegant emerald/teal
+        spaceBefore=8,
+        spaceAfter=2,
+        keepWithNext=True
+    )
+
+    item_title_style = ParagraphStyle(
+        'ResumeItemTitle',
+        parent=styles['Normal'],
+        fontName='Helvetica-Bold',
+        fontSize=9.5,
+        leading=13,
+        textColor=colors.HexColor('#1e293b'),
+        spaceBefore=4,
+        spaceAfter=1,
         keepWithNext=True
     )
 
     body_style = ParagraphStyle(
-        'ResumeBody',
+        'ResumeBodyText',
         parent=styles['Normal'],
         fontName='Helvetica',
-        fontSize=9.5,
-        leading=13.5,
-        textColor=colors.HexColor('#1e293b'),
-        spaceAfter=3
+        fontSize=9,
+        leading=12.5,
+        textColor=colors.HexColor('#334155'),
+        spaceAfter=2
     )
 
     bullet_style = ParagraphStyle(
-        'ResumeBullet',
+        'ResumeBulletItem',
         parent=styles['Normal'],
         fontName='Helvetica',
-        fontSize=9.5,
-        leading=13.5,
-        textColor=colors.HexColor('#1e293b'),
-        leftIndent=15,
+        fontSize=9,
+        leading=12.5,
+        textColor=colors.HexColor('#334155'),
+        leftIndent=12,
+        firstLineIndent=-8,
         spaceAfter=2
     )
 
     story = []
-    lines = [line.strip() for line in resume_text.splitlines()]
 
-    # Filter empty lines at start
-    while lines and not lines[0]:
-        lines.pop(0)
+    # Clean input lines
+    raw_lines = [clean_line_text(l) for l in resume_text.splitlines()]
+    lines = [l for l in raw_lines if l]
 
-    # First line often candidate name
-    if lines:
-        first_line = lines.pop(0)
-        story.append(Paragraph(first_line, title_style))
+    if not lines:
+        story.append(Paragraph("Empty Resume Content", body_style))
+        doc.build(story)
+        return str(output_path)
+
+    # 1. Candidate Name (first line)
+    name_line = lines.pop(0)
+    story.append(Paragraph(escape_xml(name_line), name_style))
+
+    # 2. Candidate Contact details (lines directly following name that contain contact identifiers)
+    contact_parts = []
+    while lines and any(k in lines[0].lower() for k in ['email', 'linkedin', 'github', 'mobile', 'phone', '+', '@', 'http', '.com']):
+        contact_line = lines.pop(0)
+        # Split tokens separated by multiple spaces
+        tokens = [clean_line_text(t) for t in re.split(r'\s{2,}', contact_line) if clean_line_text(t)]
+        if tokens:
+            contact_parts.extend(tokens)
+        else:
+            contact_parts.append(contact_line)
+
+    if contact_parts:
+        # Join with bullet separator
+        escaped_parts = [escape_xml(p) for p in contact_parts]
+        contact_html = " &bull; ".join(escaped_parts)
+        story.append(Paragraph(contact_html, contact_style))
+    else:
         story.append(Spacer(1, 4))
 
-    section_keywords = [
-        "SUMMARY", "PROFESSIONAL SUMMARY", "OBJECTIVE", "SKILLS", "TECHNICAL SKILLS",
-        "EXPERIENCE", "WORK EXPERIENCE", "EMPLOYMENT", "PROJECTS", "EDUCATION",
-        "CERTIFICATIONS", "ACHIEVEMENTS", "PUBLICATIONS"
-    ]
-
+    # 3. Process the remaining body lines
     for line in lines:
-        if not line:
+        upper_line = line.upper().strip()
+
+        # Check if line is a major section heading
+        is_heading = (
+            upper_line in KNOWN_SECTIONS or
+            (len(line) < 35 and upper_line in [s.upper() for s in KNOWN_SECTIONS]) or
+            (len(line) < 25 and line.isupper() and not line.startswith(("-", "•", "*", "◦")))
+        )
+
+        if is_heading:
             story.append(Spacer(1, 4))
+            story.append(Paragraph(escape_xml(upper_line), section_heading_style))
+            story.append(HRFlowable(
+                width="100%",
+                thickness=0.75,
+                color=colors.HexColor('#cbd5e1'),
+                spaceBefore=1,
+                spaceAfter=4
+            ))
             continue
 
-        upper_line = line.upper().rstrip(":")
-        # Check if heading
-        if upper_line in section_keywords or (len(line) < 30 and line.endswith(":") and not line.startswith(("-", "•", "*"))):
-            story.append(Spacer(1, 6))
-            story.append(Paragraph(line.rstrip(":").upper(), section_header_style))
-            story.append(HRFlowable(width="100%", thickness=1, color=colors.HexColor('#e2e8f0'), spaceBefore=2, spaceAfter=4))
-        elif line.startswith(("-", "•", "*")):
-            bullet_text = line.lstrip("-•* ").strip()
-            # Escape HTML characters for ReportLab
-            bullet_text = bullet_text.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
-            story.append(Paragraph(f"&bull; {bullet_text}", bullet_style))
+        # Check if bullet point
+        if line.startswith(("-", "•", "*", "◦", "▪")):
+            bullet_content = line.lstrip("-•*◦▪ ").strip()
+            escaped_bullet = escape_xml(bullet_content)
+            story.append(Paragraph(f"&bull;&nbsp;{escaped_bullet}", bullet_style))
+            continue
+
+        # Check if sub-heading (Job Title | Company | Dates or Project Name | Stack)
+        if "|" in line:
+            escaped = escape_xml(line)
+            story.append(Paragraph(f"<b>{escaped}</b>", item_title_style))
+            continue
+
+        # Check if category / key-value line (e.g. "Data & Languages: Python, SQL...")
+        escaped = escape_xml(line)
+        if ":" in line and len(line.split(":", 1)[0]) < 30 and not line.startswith("http"):
+            parts = escaped.split(":", 1)
+            story.append(Paragraph(f"<b>{parts[0]}:</b>{parts[1]}", body_style))
         else:
-            escaped_line = line.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
-            story.append(Paragraph(escaped_line, body_style))
+            story.append(Paragraph(escaped, body_style))
 
     doc.build(story)
     return str(output_path)

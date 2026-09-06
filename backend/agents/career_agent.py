@@ -38,6 +38,7 @@ Guidelines:
 5. ALWAYS use the `propose_resume_edit` tool when the user explicitly asks to edit, update, modify, rewrite, change, or add new skills/experience to their resume. The tool will prepare a before/after proposal and submit it for human approval.
 6. Assume the candidate's resume is already uploaded; use your tools to access it rather than asking the user to upload it.
 7. Do not use raw markdown header hashtags (#, ##, or ###). Format section headers using clean bold titles (e.g. **Current Relevant Skills**), bullet points, and numbered lists.
+8. ATTENTION TO REVERTS & TRUTH GROUNDING: The user may revert resume edits back to the original version at any time. When answering what skills, projects, or experience the candidate currently has, ALWAYS use the `search_resume` tool to verify what is actually present in the resume. NEVER assume that a previously discussed edit or added skill is present unless confirmed by `search_resume`.
 """
 
 def get_career_agent():
@@ -54,3 +55,11 @@ class CareerAgentWrapper:
         return agent.invoke(input_dict, config=config, **kwargs)
 
 career_agent = CareerAgentWrapper()
+
+def reset_agent_thread_memory(thread_id: str):
+    """Deletes stored conversation checkpoints for a thread to clear stale context after a resume revert."""
+    try:
+        memory.delete_thread(thread_id)
+        print(f"🧹 [AGENT MEMORY RESET] Cleared conversation history for thread '{thread_id}'")
+    except Exception as e:
+        print(f"[WARN] Failed to clear agent thread memory: {e}")
