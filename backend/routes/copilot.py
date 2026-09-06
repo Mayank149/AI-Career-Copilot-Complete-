@@ -277,16 +277,18 @@ async def get_provider():
 @router.post("/copilot/provider")
 async def set_provider(request: ProviderToggleRequest):
     prov = request.provider.strip().lower()
-    if prov in ["cloud", "groq"]:
-        config.LLM_PROVIDER = "cloud"
-    else:
-        config.LLM_PROVIDER = "local"
+    target_provider = "cloud" if prov in ["cloud", "groq"] else "local"
 
     from services.llm_service import get_llm
+    old_provider = config.LLM_PROVIDER
     try:
-        new_llm = get_llm()
-        career_agent.model = new_llm
+        # Validate that the selected provider can be instantiated
+        config.LLM_PROVIDER = target_provider
+        _ = get_llm()
+        # Invalidate agent cache so it rebuilds with the new model
+        career_agent.reset_agent()
     except Exception as e:
+        config.LLM_PROVIDER = old_provider
         raise HTTPException(status_code=400, detail=str(e))
 
     return {

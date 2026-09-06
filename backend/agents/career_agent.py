@@ -50,8 +50,24 @@ def get_career_agent():
     )
 
 class CareerAgentWrapper:
+    def __init__(self):
+        self._current_provider = None
+        self._agent = None
+
+    def get_agent(self):
+        current = (config.LLM_PROVIDER or "cloud").strip().lower()
+        if self._agent is None or self._current_provider != current:
+            self._agent = get_career_agent()
+            self._current_provider = current
+        return self._agent
+
+    def reset_agent(self):
+        """Invalidates the cached agent so the next invocation rebuilds with the updated provider."""
+        self._agent = None
+        self._current_provider = None
+
     def invoke(self, input_dict, config=None, **kwargs):
-        agent = get_career_agent()
+        agent = self.get_agent()
         return agent.invoke(input_dict, config=config, **kwargs)
 
 career_agent = CareerAgentWrapper()
