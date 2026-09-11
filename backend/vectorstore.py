@@ -20,11 +20,12 @@ class RemoteEmbeddings:
 
 embeddings = RemoteEmbeddings()
 
-def create_vector_store(chunks, persist_directory=CHROMA_DIR):
+def create_vector_store(chunks, persist_directory=CHROMA_DIR, ids=None):
     vector_store = Chroma.from_documents(
         documents = chunks,
         embedding = embeddings,
-        persist_directory = persist_directory
+        persist_directory = persist_directory,
+        ids = ids
     )
     return vector_store
 
@@ -63,8 +64,8 @@ def get_retriever():
 
 def reindex_active_resume():
     """
-    Reloads active resume.pdf, splits text into chunks, resets ChromaDB collection,
-    and indexes the new chunks.
+    Reloads active resume.pdf, splits text into chunks, assigns chunk_id metadata,
+    resets ChromaDB collection, and indexes the new chunks.
     """
     from services.resume_service import load_resume_documents
     from langchain_text_splitters import RecursiveCharacterTextSplitter
@@ -77,6 +78,10 @@ def reindex_active_resume():
     )
     chunks = text_splitter.split_documents(documents)
 
+    for i, chunk in enumerate(chunks):
+        chunk.metadata = dict(chunk.metadata)
+        chunk.metadata["chunk_id"] = f"chunk_{i}"
+
     # Reset existing collection if present
     if os.path.exists(CHROMA_DIR):
         try:
@@ -85,5 +90,6 @@ def reindex_active_resume():
         except Exception as e:
             print(f"[WARN] Error resetting collection: {e}")
 
-    create_vector_store(chunks)
+    ids = [chunk.metadata["chunk_id"] for chunk in chunks]
+    create_vector_store(chunks, ids=ids)
     return len(chunks)

@@ -2,13 +2,12 @@ from pathlib import Path
 import shutil
 
 from fastapi import APIRouter, File, UploadFile
-from langchain_text_splitters import RecursiveCharacterTextSplitter
 from pydantic import BaseModel
 
 from chains.rag import create_rag_chain
-from config import CHUNK_OVERLAP, CHUNK_SIZE, UPLOAD_DIR
+from config import UPLOAD_DIR
 from services.resume_service import load_resume_documents
-from vectorstore import create_vector_store, get_retriever
+from vectorstore import get_retriever, reindex_active_resume
 
 
 router = APIRouter()
@@ -25,22 +24,14 @@ async def upload_resume(file: UploadFile = File(...)):
     with open(file_path, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
 
+    num_chunks = reindex_active_resume()
     documents = load_resume_documents()
-
-    text_splitter = RecursiveCharacterTextSplitter(
-        chunk_size=CHUNK_SIZE,
-        chunk_overlap=CHUNK_OVERLAP,
-    )
-
-    chunks = text_splitter.split_documents(documents)
-
-    create_vector_store(chunks)
 
     return {
         "filename": file.filename,
         "file_path": str(file_path),
         "num_pages": len(documents),
-        "num_chunks": len(chunks),
+        "num_chunks": num_chunks,
     }
 
 
