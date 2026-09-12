@@ -13,8 +13,8 @@ This directory contains the automated evaluation framework and benchmarking suit
 |---|---|---|---|---|
 | Vector Retrieval | ChromaDB + MiniLM Embeddings | Recall@4 | 90.00% | Relevant resume context is retrieved in the top 4 chunks 9 out of 10 times |
 | Vector Retrieval | ChromaDB + MiniLM Embeddings | MRR@4 | 83.33% | Top-ranked chunk is the direct ground-truth match in 11 of 15 queries |
-| Cloud Inference | Groq API (`openai/gpt-oss-120b`) | P50 / P95 Latency | 0.81s / 1.20s | Fast, deterministic response times suitable for real-time conversational UX (240.9 tok/s) |
-| Local Inference | Ollama (`qwen2.5:7b` on CPU) | P50 / P95 Latency | 14.22s / 132.61s | Full data privacy with zero API costs; subject to memory-bandwidth bottlenecks on long outputs (3.8 tok/s) |
+| Cloud Inference | Groq API (`openai/gpt-oss-120b`) | P50 / P95 Latency | 0.81s / 1.20s | Consistently low response times suitable for real-time conversational UX (246.7 tok/s) |
+| Local Inference | Ollama (`qwen2.5:7b` on CPU) | P50 / P95 Latency | 14.22s / 132.61s | Full data privacy with zero API costs; likely influenced by local CPU inference and hardware constraints (3.7 tok/s) |
 | System Speedup | Cloud vs. Local | Latency Ratio | 32.9x | Validates hybrid routing: cloud for interactive UX, local for offline privacy |
 
 ---
@@ -77,8 +77,8 @@ Measure real-world latency, generation speed (tokens/sec), and statistical distr
 - **Metrics Evaluated**:
   - **Average Latency**: Arithmetic mean across all runs.
   - **P50 Latency (Median)**: The 50th percentile, representing typical user experience.
-  - **P95 Latency (Tail)**: The 95th percentile, capturing worst-case tail latency (complex prompts, longer outputs, or network variation).
-  - **Generation Speed (tokens/sec)**: Total generated completion tokens divided by elapsed request duration.
+  - **P95 Latency**: Latency below which approximately 95% of measured requests fall, used to characterize tail performance.
+  - **Overall Generation Speed (tokens/sec)**: Total generated completion tokens divided by total elapsed request time across all runs.
 
 ### Benchmark Workloads
 1. **Quick Technical Lookup**: Short factual query (< 60 words).
@@ -106,14 +106,15 @@ Measure real-world latency, generation speed (tokens/sec), and statistical distr
 | **P95 Latency (Tail)** | **1.20s** | **132.61s** |
 | **Min Latency** | 0.63s | 3.84s |
 | **Max Latency** | 1.21s | 135.53s |
-| **Average Generation Speed** | **240.9 tokens/sec** | **3.8 tokens/sec** |
+| **Overall Generation Speed** | **246.7 tokens/sec** | **3.7 tokens/sec** |
+| **Total Tokens / Time** | 4,202 tokens / 17.0s | 2,089 tokens / 560.0s |
 | **Overall Speedup Factor** | **32.9x faster than local** | Reference baseline |
 
 ### Latency Distribution Analysis
-- **Cloud Provider (Groq)** exhibits narrow latency spread: minimum 0.63s, P50 of 0.81s, and P95 of 1.20s. Even worst-case queries finish within ~1.2 seconds, ensuring predictable interactive performance.
+- **Cloud Provider (Groq)** exhibits a consistently narrow latency distribution across runs: minimum 0.63s, P50 of 0.81s, and P95 of 1.20s. Even complex reasoning queries finish within ~1.2 seconds, ensuring predictable interactive performance.
 - **Local Provider (Ollama on CPU)** displays substantial variance between simple queries and multi-step reasoning:
   - For short outputs (e.g. bullet rewriting), latency remains manageable (P50 around 7-14s).
-  - For longer reasoning tasks (e.g. Job Alignment Reasoning producing 300+ tokens), latency scales linearly with output length, reaching tail latency (P95) of 132.61s due to DDR memory bandwidth limits.
+  - For longer reasoning tasks (e.g. Job Alignment Reasoning producing 300+ tokens), latency scales with output length, reaching tail latency (P95) of 132.61s, likely influenced by local CPU inference and hardware constraints.
 
 ---
 
@@ -124,8 +125,8 @@ The evaluation highlights clear technical trade-offs between cloud-hosted APIs a
 | Decision Factor | Cloud (Groq API) | Local (Ollama On-Device) |
 |---|---|---|
 | **P50 Latency** | Sub-second (0.81s) | Moderate (14.22s) |
-| **P95 Latency** | Deterministic (1.20s) | Variable on long outputs (132.61s) |
-| **Generation Speed** | Fast (240.9 tokens/sec) | Limited by DDR bandwidth (3.8 tokens/sec) |
+| **P95 Latency** | Consistently bounded (1.20s) | Variable on long outputs (132.61s) |
+| **Generation Speed** | Fast (246.7 tokens/sec) | Subject to local CPU constraints (3.7 tokens/sec) |
 | **Data Privacy** | Prompts transmitted to cloud | Complete data isolation (100% on-device) |
 | **Cost** | API usage costs (pay-per-token) | Zero ongoing API cost |
 | **Availability** | Requires internet and API uptime | Fully offline operational capability |

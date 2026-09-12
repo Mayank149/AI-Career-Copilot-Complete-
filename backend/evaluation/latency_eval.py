@@ -103,20 +103,18 @@ def estimate_tokens(text: str) -> int:
 
 def calculate_percentiles(latencies: list) -> tuple:
     """
-    Calculate P50 (median) and P95 from all individual run latencies.
+    Calculate P50 (median) and P95 from run latencies.
+    For small samples (< 20), using max is a conservative tail indicator.
     """
     if not latencies:
         return 0.0, 0.0
-    if len(latencies) == 1:
-        return round(latencies[0], 2), round(latencies[0], 2)
 
     p50 = statistics.median(latencies)
+
     if len(latencies) >= 20:
         p95 = statistics.quantiles(latencies, n=20)[18]
-    elif len(latencies) >= 2:
-        p95 = statistics.quantiles(latencies, n=100)[94]
     else:
-        p95 = latencies[0]
+        p95 = max(latencies)
 
     return round(p50, 2), round(p95, 2)
 
@@ -169,6 +167,7 @@ def evaluate_provider(provider_name: str, runs: int = 5) -> dict:
 
     results = []
     all_individual_latencies = []
+    all_individual_tokens = []
     all_individual_speeds = []
 
     for item in BENCHMARK_PROMPTS:
@@ -189,6 +188,7 @@ def evaluate_provider(provider_name: str, runs: int = 5) -> dict:
                 prompt_speeds.append(metrics["generation_speed"])
 
                 all_individual_latencies.append(metrics["latency"])
+                all_individual_tokens.append(metrics["tokens"])
                 all_individual_speeds.append(metrics["generation_speed"])
 
                 run_label = f" (Run {r+1}/{runs})" if runs > 1 else ""
@@ -199,7 +199,9 @@ def evaluate_provider(provider_name: str, runs: int = 5) -> dict:
         valid_latencies = [lat for lat in prompt_latencies if lat is not None]
         avg_lat = sum(valid_latencies) / len(valid_latencies) if valid_latencies else 0.0
         avg_tok = sum(prompt_tokens) / len(prompt_tokens) if prompt_tokens else 0
-        avg_speed = sum(prompt_speeds) / len(prompt_speeds) if prompt_speeds else 0.0
+        prompt_tot_tokens = sum(prompt_tokens)
+        prompt_tot_elapsed = sum(valid_latencies)
+        prompt_gen_speed = prompt_tot_tokens / prompt_tot_elapsed if prompt_tot_elapsed > 0 else 0.0
 
         p50_prompt, p95_prompt = calculate_percentiles(valid_latencies)
 
@@ -210,7 +212,7 @@ def evaluate_provider(provider_name: str, runs: int = 5) -> dict:
             "p50_latency": p50_prompt,
             "p95_latency": p95_prompt,
             "average_tokens": int(avg_tok),
-            "generation_speed": round(avg_speed, 2),
+            "generation_speed": round(prompt_gen_speed, 2),
             "all_runs_latency": [round(l, 2) for l in valid_latencies]
         })
 
@@ -218,7 +220,11 @@ def evaluate_provider(provider_name: str, runs: int = 5) -> dict:
 
     overall_avg_lat = sum(all_individual_latencies) / len(all_individual_latencies) if all_individual_latencies else 0.0
     overall_p50_lat, overall_p95_lat = calculate_percentiles(all_individual_latencies)
-    overall_avg_speed = sum(all_individual_speeds) / len(all_individual_speeds) if all_individual_speeds else 0.0
+
+    # Total generated tokens divided by total elapsed request time
+    total_tokens = sum(all_individual_tokens)
+    total_elapsed = sum(all_individual_latencies)
+    overall_generation_speed = total_tokens / total_elapsed if total_elapsed > 0 else 0.0
 
     summary = {
         "provider": provider_name,
@@ -226,12 +232,14 @@ def evaluate_provider(provider_name: str, runs: int = 5) -> dict:
         "total_prompts": len(BENCHMARK_PROMPTS),
         "runs_per_prompt": runs,
         "total_inferences": len(all_individual_latencies),
+        "total_tokens_generated": total_tokens,
+        "total_elapsed_time": round(total_elapsed, 2),
         "average_latency": round(overall_avg_lat, 2),
         "p50_latency": overall_p50_lat,
         "p95_latency": overall_p95_lat,
         "min_latency": round(min(all_individual_latencies), 2) if all_individual_latencies else 0.0,
         "max_latency": round(max(all_individual_latencies), 2) if all_individual_latencies else 0.0,
-        "average_generation_speed": round(overall_avg_speed, 2),
+        "average_generation_speed": round(overall_generation_speed, 2),
         "all_latencies": [round(l, 2) for l in all_individual_latencies],
         "results": results
     }
@@ -243,10 +251,11 @@ def evaluate_provider(provider_name: str, runs: int = 5) -> dict:
     print(f"  P50 (Median) Latency:    {summary['p50_latency']:.2f}s")
     print(f"  P95 (Tail) Latency:      {summary['p95_latency']:.2f}s")
     print(f"  Min / Max Latency:       {summary['min_latency']:.2f}s / {summary['max_latency']:.2f}s")
-    print(f"  Average Generation Speed:{summary['average_generation_speed']:.1f} tokens/sec")
+    print(f"  Overall Generation Speed:{summary['average_generation_speed']:.1f} tokens/sec ({total_tokens} tokens / {total_elapsed:.1f}s)")
     print("-" * 65)
 
     return summary
+
 
 
 def print_comparison_table(cloud_summary: dict, local_summary: dict):
