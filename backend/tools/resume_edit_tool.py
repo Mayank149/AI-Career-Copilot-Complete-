@@ -14,7 +14,7 @@ def propose_resume_edit(instruction: str, config: RunnableConfig) -> str:
     thread_id = config.get("configurable", {}).get("thread_id", "default")
     sub_conf = {"configurable": {"thread_id": thread_id}}
 
-    print(f"🛠️ [TOOL propose_resume_edit] Instruction: '{instruction}' | Thread: '{thread_id}'")
+    print(f"[TOOL propose_resume_edit] Instruction: '{instruction}' | Thread: '{thread_id}'")
 
     # Invoke LangGraph resume editor (runs until human_review interrupt)
     resume_editor_graph.invoke(
