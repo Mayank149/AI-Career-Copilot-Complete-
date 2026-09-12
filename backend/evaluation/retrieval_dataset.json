@@ -1,0 +1,62 @@
+[
+  {
+    "question": "What deep learning models did I build during my machine learning internship?",
+    "relevant_chunks": ["chunk_1", "chunk_2"]
+  },
+  {
+    "question": "How did I build the AI Complaint Triage & Routing System?",
+    "relevant_chunks": ["chunk_2", "chunk_3"]
+  },
+  {
+    "question": "How does my Visual Search Engine work and what performance did it achieve?",
+    "relevant_chunks": ["chunk_3", "chunk_4"]
+  },
+  {
+    "question": "What RAG system did I build and what results did it achieve?",
+    "relevant_chunks": ["chunk_5", "chunk_6"]
+  },
+  {
+    "question": "What competitive programming achievements do I have?",
+    "relevant_chunks": ["chunk_7"]
+  },
+  {
+    "question": "What programming languages and data science tools do I know?",
+    "relevant_chunks": ["chunk_0"]
+  },
+  {
+    "question": "What technologies and frameworks do I use for RAG and vector search?",
+    "relevant_chunks": ["chunk_1"]
+  },
+  {
+    "question": "What did I do in my internship?",
+    "relevant_chunks": ["chunk_2"]
+  },
+  {
+    "question": "What is my academic background and current CGPA?",
+    "relevant_chunks": ["chunk_8"]
+  },
+  {
+    "question": "What book and research paper have I published?",
+    "relevant_chunks": ["chunk_6", "chunk_7"]
+  },
+  {
+    "question": "What deep learning architectures did I use for medical image analysis?",
+    "relevant_chunks": ["chunk_1", "chunk_2"]
+  },
+  {
+    "question": "How many departments does my complaint routing system handle?",
+    "relevant_chunks": ["chunk_2"]
+  },
+  {
+    "question": "What embedding and vector search technologies have I worked with?",
+    "relevant_chunks": ["chunk_0", "chunk_1"]
+  },
+  {
+    "question": "What was my CGPA at Lovely Professional University?",
+    "relevant_chunks": ["chunk_8"]
+  },
+  {
+    "question": "What performance did I achieve in my Visual Search Engine?",
+    "relevant_chunks": ["chunk_4"]
+  }
+]
