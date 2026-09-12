@@ -14,6 +14,12 @@ In today's hyper-competitive job market, generic resumes rarely pass automated A
 3. **Rewrites resume sections with Human-in-the-Loop approval**, presenting side-by-side before/after diffs with ATS impact explanations.
 4. **Instantly compiles professional, ATS-compliant PDFs** ready for submission with a single click.
 
+![AI Career Copilot - ATS Score Studio](Images/demo2.png)
+*Figure 1: ATS Score Studio with real-time role matching, keyword gap analysis, and dual-provider toggling.*
+
+![AI Career Copilot - Interactive Agent Chat](Images/demo1.png)
+*Figure 2: AI Career Copilot Chat powered by LangGraph memory persistence and autonomous tool calling.*
+
 ---
 
 ## Core Capabilities
@@ -23,7 +29,7 @@ In today's hyper-competitive job market, generic resumes rarely pass automated A
 - **RAG Semantic Search Engine**: ChromaDB vector index with `sentence-transformers/all-MiniLM-L6-v2` embeddings, achieving **90.00% Recall@4** and **83.33% MRR@4** on resume query benchmarks.
 - **Dual-Provider Architecture**:
   - **Cloud (Groq API)**: Sub-second conversational responses (**0.81s P50 latency**, 246.7 tokens/sec) for real-time interaction.
-  - **Local (Ollama On-Device)**: 100% data privacy and offline capability with zero external API costs.
+  - **Local (Ollama On-Device)**: Local inference keeps model execution on-device with no external LLM API calls.
 - **Executive PDF Generation**: High-quality PDF compilation using ReportLab with clean typographic hierarchy, contact rows, and ATS-parseable layout blocks.
 - **One-Click Revert & Memory Reset**: Full rollback to the original resume backup with synchronized vector re-indexing and conversational thread memory cleanup.
 
@@ -144,10 +150,10 @@ The system includes automated evaluation scripts under [`backend/evaluation/`](b
 | Dimension | Metric | Result | Industry Significance |
 |---|---|---|---|
 | **Vector Retrieval** | Recall@4 | **90.00%** | Relevant career context is surfaced in top 4 chunks 9 out of 10 times |
-| **Vector Retrieval** | MRR@4 | **83.33%** | Ground-truth context ranks first in 11 of 15 test queries |
+| **Vector Retrieval** | MRR@4 | **83.33%** | Measures how highly relevant context is ranked within the top 4 results |
 | **Cloud Inference (Groq)** | P50 / P95 Latency | **0.81s / 1.20s** | Sub-second, interactive responses suitable for fluid chat |
-| **Local Inference (Ollama)**| P50 / P95 Latency | **14.22s / 132.61s** | 100% private and free; influenced by host CPU constraints |
-| **Cloud Speedup Factor** | Latency Ratio | **32.9x faster** | Validates hybrid routing based on user latency requirements |
+| **Local Inference (Ollama)**| P50 / P95 Latency | **14.22s / 132.61s** | Keeps inference on-device with zero external API calls; influenced by host CPU constraints |
+| **Cloud Speedup Factor** | Latency Ratio | **32.9x faster** | Demonstrates the latency tradeoff between cloud and local inference |
 
 To run the evaluations:
 ```bash
